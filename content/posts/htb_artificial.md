@@ -1,6 +1,6 @@
 +++
 date = '2025-10-23T13:48:04+01:00'
-draft = true
+draft = false
 title = 'HTB Machine Writeup "Artificial"'
 tags = ["HTB", "Linux"]
 +++

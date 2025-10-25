@@ -1,6 +1,6 @@
 +++
 date = '2025-10-23T14:01:34+01:00'
-draft = true
+draft = false
 title = 'HTB Machine Writeup "TombWatcher"'
 tags = ["HTB", "Windows", "Active Directory"]
 +++

