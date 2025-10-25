@@ -1,1 +1,8 @@
-<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Categories - Category - My Personal Blog</title><link>https://fodhil-ben.github.io/f0dh1l/categories/</link><description>Categories - Category - My Personal Blog</description><generator>Hugo -- gohugo.io</generator><language>en</language><managingEditor>benhibafodhil@gmail.com (F0DH1L)</managingEditor><webMaster>benhibafodhil@gmail.com (F0DH1L)</webMaster><copyright>2025 F0DH1L</copyright><atom:link href="https://fodhil-ben.github.io/f0dh1l/categories/" rel="self" type="application/rss+xml"/></channel></rss>
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+        <title>Categories - Category - My Personal Blog</title>
+        <link>http://localhost:1313/f0dh1l/categories/</link>
+        <description>Categories - Category - My Personal Blog</description>
+        <generator>Hugo -- gohugo.io</generator><language>en</language><managingEditor>benhibafodhil@gmail.com (F0DH1L)</managingEditor>
+            <webMaster>benhibafodhil@gmail.com (F0DH1L)</webMaster><copyright>2025 F0DH1L</copyright><atom:link href="http://localhost:1313/f0dh1l/categories/" rel="self" type="application/rss+xml" /></channel>
+</rss>
