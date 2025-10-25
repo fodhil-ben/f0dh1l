@@ -1,0 +1,26 @@
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+        <title>Bug Bounty - Category - My Personal Blog</title>
+        <link>http://localhost:1313/categories/bug-bounty/</link>
+        <description>Bug Bounty - Category - My Personal Blog</description>
+        <generator>Hugo -- gohugo.io</generator><language>en</language><managingEditor>benhibafodhil@gmail.com (F0DH1L)</managingEditor>
+            <webMaster>benhibafodhil@gmail.com (F0DH1L)</webMaster><copyright>2025 F0DH1L</copyright><lastBuildDate>Thu, 24 Jul 2025 10:11:07 &#43;0100</lastBuildDate><atom:link href="http://localhost:1313/categories/bug-bounty/" rel="self" type="application/rss+xml" /><item>
+    <title>My First H1 Bounty: From Open Redirect to Account Takeover</title>
+    <link>http://localhost:1313/posts/first-bounty-h1/</link>
+    <pubDate>Thu, 24 Jul 2025 10:11:07 &#43;0100</pubDate>
+    <author>F0DH1L</author>
+    <guid>http://localhost:1313/posts/first-bounty-h1/</guid>
+    <description><![CDATA[<div class="featured-image">
+                <img src="/images/first-report.png" referrerpolicy="no-referrer">
+            </div><h1 id="from-open-redirect-to-dom-xss-to-profile-manipulation">From Open Redirect to DOM XSS to Profile Manipulation</h1>
+<h2 id="executive-summary">Executive Summary</h2>
+<p>During a bug bounty hunt on a target&rsquo;s main domain, I discovered an <a href="https://owasp.org/www-community/attacks/Unvalidated_Redirects_and_Forwards_Cheat_Sheet" target="_blank" rel="noopener noreffer ">open redirect vulnerability</a> that I successfully escalated to a <a href="https://owasp.org/www-community/attacks/DOM_Based_XSS" target="_blank" rel="noopener noreffer ">DOM-based XSS</a> with severe impact. Working collaboratively with my friend Amine (<a href="https://x.com/bm00__" target="_blank" rel="noopener noreffer ">@bm00__</a>), we bypassed <a href="https://www.akamai.com/products/cloud-security" target="_blank" rel="noopener noreffer ">Akamai WAF</a> protections and achieved:</p>
+<ul>
+<li>Cookie theft via JavaScript execution</li>
+<li>User profile manipulation through <a href="https://owasp.org/www-community/attacks/csrf" target="_blank" rel="noopener noreffer ">CSRF</a> exploitation</li>
+<li>Partial account compromise (limited by HTTPOnly cookies)</li>
+</ul>
+<p>The vulnerability was reported and rewarded with a <strong>High severity (7.1 CVSS)</strong> rating and received an initial bounty on triage due to its severity.</p>]]></description>
+</item>
+</channel>
+</rss>
