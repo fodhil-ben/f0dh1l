@@ -1,4 +1,4 @@
-baseURL = "https://fodhil-ben.github.io/f0dh1l/"
+baseURL = "https://fodhil-ben.github.io/blog/"
 title = "My Personal Blog"
 languageCode = "en"
 languageName = "English"
@@ -75,7 +75,7 @@ ignoreErrors = ["error-remote-getjson", "error-missing-instagram-accesstoken"]
       defaultHiddenFromHomePage = false
 
   [params.social]
-    GitHub = "fodhil-ben"
+    GitHub = "f0dh1l"
     Linkedin = "fodhil-benhiba"
     X = "Benhibafodhil"
     Instagram = "fodhil_benhiba"

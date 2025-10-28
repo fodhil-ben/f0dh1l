@@ -11,7 +11,7 @@ tags = ["HTB", "Windows", "Active Directory"]
 - **Difficulty**: Medium
 - **Key Concepts**: Kerberoasting, LDAP Enumeration, BloodHound Analysis, Active Directory Privilege Escalation, Deleted Object Recovery, ADCS ESC15 Vulnerability
 
-![Solve Screenshot](/f0dh1l/images/htb_tombwatcher/image-3.png)
+![Solve Screenshot](/blog/images/htb_tombwatcher/image-3.png)
 
 ## Overview
 **TombWatcher** is a Medium Windows machine from HackTheBox that demonstrates a complex Active Directory attack path involving Kerberoasting, group membership manipulation, GMSA password extraction, ownership changes, recovering and restoring deleted AD objects, and ultimately exploiting an ADCS vulnerability (ESC15) to achieve domain administrator privileges.
@@ -90,7 +90,7 @@ LDAP        10.10.11.72     389    DC01             Compressing output into /hom
 
 The collection completed successfully and revealed a clear privilege escalation path from `alfred` to a user that is a member of `Remote Management Users`, so after getting that user we can connect to the host with WinRM:
 
-![alt text](/f0dh1l/images/htb_tombwatcher/image-1.png)
+![alt text](/blog/images/htb_tombwatcher/image-1.png)
 
 ## Exploitation: The Attack Chain
 
@@ -234,7 +234,7 @@ At this point, I noticed john has **GenericAll** privileges on the ADCS OU, whic
 
 The user john has GenericAll privileges over ADCS@TOMBWATCHER.HTB. This could be an interesting place to investigate.
 
-![alt text](/f0dh1l/images/htb_tombwatcher/image-2.png)
+![alt text](/blog/images/htb_tombwatcher/image-2.png)
 
 ### Investigating the ADCS
 

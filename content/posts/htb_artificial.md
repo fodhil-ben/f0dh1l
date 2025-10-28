@@ -12,7 +12,7 @@ tags = ["HTB", "Linux"]
 - **OS**: Linux
 - **Key Concepts**: TensorFlow/Keras Vulnerability, File Upload, Privilege Escalation Through Backrest service
 
-![Solve Screenshot](/f0dh1l/images/htb_artificial/image-18.png)
+![Solve Screenshot](/blog/images/htb_artificial/image-18.png)
 
 ## Overview
 **Artificial** is an Easy Linux machine from HackTheBox that demonstrates the dangers of accepting user uploaded machine learning models. The path to root involves exploiting a TensorFlow remote code execution vulnerability, database credential extraction, and abusing a backup service to read the root flag.
@@ -58,11 +58,11 @@ The web server caught my attention, After adding this to my `/etc/hosts` file, I
 
 The landing page presented an interesting web application focused on machine learning model hosting. After registering an account and login i was redirected to the main page.
 
-![Website homepage](/f0dh1l/images/htb_artificial/image.png)
+![Website homepage](/blog/images/htb_artificial/image.png)
 
 The platform featured a file upload functionality specifically designed for machine learning models. What made this particularly interesting was the accepted file format: `.h5` files, which are Keras model files.
 
-![File upload page](/f0dh1l/images/htb_artificial/image-1.png)
+![File upload page](/blog/images/htb_artificial/image-1.png)
 
 Exploring further, I discovered downloadable files that revealed crucial information about the backend infrastructure - a `Dockerfile` and `requirements.txt`. These files exposed the technology stack in use:
 
@@ -119,7 +119,7 @@ The tricky part? Getting the exact environment match. My initial attempts in a l
 
 I spun up a Docker container with the exact configuration and compiled the malicious model inside:
 
-![Compiling exploit in Docker](/f0dh1l/images/htb_artificial/image-2.png)
+![Compiling exploit in Docker](/blog/images/htb_artificial/image-2.png)
 
 With the weaponized `exploit.h5` file in hand, I extracted it from the container and prepared for deployment.
 
@@ -129,15 +129,15 @@ With the weaponized `exploit.h5` file in hand, I extracted it from the container
 
 I uploaded the malicious model through the web interface:
 
-![Uploading malicious model](/f0dh1l/images/htb_artificial/image-3.png)
+![Uploading malicious model](/blog/images/htb_artificial/image-3.png)
 
 With my netcat listener ready on port 4444, I triggered the model execution:
 
-![Triggering model execution](/f0dh1l/images/htb_artificial/image-4.png)
+![Triggering model execution](/blog/images/htb_artificial/image-4.png)
 
 Success! The reverse shell connected back to my machine:
 
-![Reverse shell obtained](/f0dh1l/images/htb_artificial/image-5.png)
+![Reverse shell obtained](/blog/images/htb_artificial/image-5.png)
 
 I was in, but as a low-privileged user. Time to escalate.
 
@@ -160,7 +160,7 @@ This MD5 hash cracked easily using hashcat:
 
 I switched to the `gael` user and gained proper shell access via SSH for better stability.
 
-![Getting User Flag](/f0dh1l/images/htb_artificial/image-6.png)
+![Getting User Flag](/blog/images/htb_artificial/image-6.png)
 
 ---
 
@@ -168,11 +168,11 @@ I switched to the `gael` user and gained proper shell access via SSH for better 
 
 After stabilizing my access, I checked my group memberships and noticed something interesting:
 
-![User groups](/f0dh1l/images/htb_artificial/image-7.png)
+![User groups](/blog/images/htb_artificial/image-7.png)
 
 The `sysadm` group stood out. I immediately searched for files accessible by this group:
 
-![Finding sysadm files](/f0dh1l/images/htb_artificial/image-8.png)
+![Finding sysadm files](/blog/images/htb_artificial/image-8.png)
 
 And GG! A backup file at `/var/backups/backrest_backup.tar.gz` was readable by the `sysadm` group. I downloaded this archive to my local machine for analysis.
 
@@ -206,7 +206,7 @@ ssh -L 9898:127.0.0.1:9898 gael@artificial.htb
 
 Now I could access the Backrest interface from my browser at `http://localhost:9898`.
 
-![Backrest login](/f0dh1l/images/htb_artificial/image-9.png)
+![Backrest login](/blog/images/htb_artificial/image-9.png)
 
 Logging in with `backrest_root:!@#$%^`, I gained access to the backup management interface.
 
@@ -216,28 +216,28 @@ The Backrest interface allowed me to create backup repositories and plans. More 
 
 **Step 1:** I created a new backup repository:
 
-![Creating repository](/f0dh1l/images/htb_artificial/image-11.png)
+![Creating repository](/blog/images/htb_artificial/image-11.png)
 
 **Step 2:** I created a backup plan targeting `/root/root.txt`:
 
-![Creating backup plan](/f0dh1l/images/htb_artificial/image-12.png)
+![Creating backup plan](/blog/images/htb_artificial/image-12.png)
 
 **Step 3:** I executed the backup:
 
-![Executing backup](/f0dh1l/images/htb_artificial/image-13.png)
+![Executing backup](/blog/images/htb_artificial/image-13.png)
 
 **Step 4:** I performed a restore operation to extract the backed-up files:
 
-![Starting restore](/f0dh1l/images/htb_artificial/image-14.png)
-![Restore in progress](/f0dh1l/images/htb_artificial/image-15.png)
+![Starting restore](/blog/images/htb_artificial/image-14.png)
+![Restore in progress](/blog/images/htb_artificial/image-15.png)
 
 **Step 5:** Finally, I downloaded the backup archive containing the root flag:
 
-![Downloading archive](/f0dh1l/images/htb_artificial/image-16.png)
+![Downloading archive](/blog/images/htb_artificial/image-16.png)
 
 Extracting the archive revealed the coveted root flag:
 
-![Root flag obtained](/f0dh1l/images/htb_artificial/image-17.png)
+![Root flag obtained](/blog/images/htb_artificial/image-17.png)
 
 🎉 **Machine pwned!**
 

@@ -1,16 +1,4 @@
-<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
-    <channel>
-        <title>Windows - Tag - My Personal Blog</title>
-        <link>http://localhost:1313/f0dh1l/tags/windows/</link>
-        <description>Windows - Tag - My Personal Blog</description>
-        <generator>Hugo -- gohugo.io</generator><language>en</language><managingEditor>benhibafodhil@gmail.com (F0DH1L)</managingEditor>
-            <webMaster>benhibafodhil@gmail.com (F0DH1L)</webMaster><copyright>2025 F0DH1L</copyright><lastBuildDate>Thu, 23 Oct 2025 14:01:34 &#43;0100</lastBuildDate><atom:link href="http://localhost:1313/f0dh1l/tags/windows/" rel="self" type="application/rss+xml" /><item>
-    <title>HTB Machine Writeup &#34;TombWatcher&#34;</title>
-    <link>http://localhost:1313/f0dh1l/posts/htb_tombwatcher/</link>
-    <pubDate>Thu, 23 Oct 2025 14:01:34 &#43;0100</pubDate>
-    <author>benhibafodhil@gmail.com (F0DH1L)</author>
-    <guid>http://localhost:1313/f0dh1l/posts/htb_tombwatcher/</guid>
-    <description><![CDATA[<h1 id="htb-machine-tombwatcher---writeup">HTB Machine: TombWatcher - Writeup</h1>
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Windows - Tag - My Personal Blog</title><link>https://fodhil-ben.github.io/blog/tags/windows/</link><description>Windows - Tag - My Personal Blog</description><generator>Hugo -- gohugo.io</generator><language>en</language><managingEditor>benhibafodhil@gmail.com (F0DH1L)</managingEditor><webMaster>benhibafodhil@gmail.com (F0DH1L)</webMaster><copyright>2025 F0DH1L</copyright><lastBuildDate>Thu, 23 Oct 2025 14:01:34 +0100</lastBuildDate><atom:link href="https://fodhil-ben.github.io/blog/tags/windows/" rel="self" type="application/rss+xml"/><item><title>HTB Machine Writeup "TombWatcher"</title><link>https://fodhil-ben.github.io/blog/posts/htb_tombwatcher/</link><pubDate>Thu, 23 Oct 2025 14:01:34 +0100</pubDate><author>benhibafodhil@gmail.com (F0DH1L)</author><guid>https://fodhil-ben.github.io/blog/posts/htb_tombwatcher/</guid><description><![CDATA[<h1 id="htb-machine-tombwatcher---writeup">HTB Machine: TombWatcher - Writeup</h1>
 <h2 id="machine-information">Machine Information</h2>
 <ul>
 <li><strong>Difficulty</strong>: Medium</li>
@@ -18,7 +6,4 @@
 </ul>
 <p></p>
 <h2 id="overview">Overview</h2>
-<p><strong>TombWatcher</strong> is a Medium Windows machine from HackTheBox that demonstrates a complex Active Directory attack path involving Kerberoasting, group membership manipulation, GMSA password extraction, ownership changes, recovering and restoring deleted AD objects, and ultimately exploiting an ADCS vulnerability (ESC15) to achieve domain administrator privileges.</p>]]></description>
-</item>
-</channel>
-</rss>
+<p><strong>TombWatcher</strong> is a Medium Windows machine from HackTheBox that demonstrates a complex Active Directory attack path involving Kerberoasting, group membership manipulation, GMSA password extraction, ownership changes, recovering and restoring deleted AD objects, and ultimately exploiting an ADCS vulnerability (ESC15) to achieve domain administrator privileges.</p>]]></description></item></channel></rss>

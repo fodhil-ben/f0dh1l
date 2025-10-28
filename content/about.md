@@ -14,7 +14,7 @@ Welcome to my cybersecurity blog! I'm a passionate **Computer Science Student**,
 - [**Bugcrowd**](https://bugcrowd.com/h/F0DH1L)
 - [**X**](https://x.com/Benhibafodhil)
 - [**LinkedIn**](https://linkedin.com/in/fodhil-benhiba)
-- [**GitHub**](https://github.com/fodhil-ben)
+- [**GitHub**](https://github.com/f0dh1l)
 
 Feel free to reach out if you'd like to collaborate on research, discuss interesting vulnerabilities, or just chat about cybersecurity!
 

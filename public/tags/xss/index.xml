@@ -1,19 +1,4 @@
-<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
-    <channel>
-        <title>Xss - Tag - My Personal Blog</title>
-        <link>http://localhost:1313/f0dh1l/tags/xss/</link>
-        <description>Xss - Tag - My Personal Blog</description>
-        <generator>Hugo -- gohugo.io</generator><language>en</language><managingEditor>benhibafodhil@gmail.com (F0DH1L)</managingEditor>
-            <webMaster>benhibafodhil@gmail.com (F0DH1L)</webMaster><copyright>2025 F0DH1L</copyright><lastBuildDate>Thu, 24 Jul 2025 10:11:07 &#43;0100</lastBuildDate><atom:link href="http://localhost:1313/f0dh1l/tags/xss/" rel="self" type="application/rss+xml" /><item>
-    <title>My First H1 Bounty: From Open Redirect to Profile Manipulation</title>
-    <link>http://localhost:1313/f0dh1l/posts/first-h1-bounty/</link>
-    <pubDate>Thu, 24 Jul 2025 10:11:07 &#43;0100</pubDate>
-    <author>benhibafodhil@gmail.com (F0DH1L)</author>
-    <guid>http://localhost:1313/f0dh1l/posts/first-h1-bounty/</guid>
-    <description><![CDATA[<h1 id="from-open-redirect-to-dom-xss-to-profile-manipulation">From Open Redirect to DOM XSS to Profile Manipulation</h1>
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Xss - Tag - My Personal Blog</title><link>https://fodhil-ben.github.io/blog/tags/xss/</link><description>Xss - Tag - My Personal Blog</description><generator>Hugo -- gohugo.io</generator><language>en</language><managingEditor>benhibafodhil@gmail.com (F0DH1L)</managingEditor><webMaster>benhibafodhil@gmail.com (F0DH1L)</webMaster><copyright>2025 F0DH1L</copyright><lastBuildDate>Thu, 24 Jul 2025 10:11:07 +0100</lastBuildDate><atom:link href="https://fodhil-ben.github.io/blog/tags/xss/" rel="self" type="application/rss+xml"/><item><title>My First H1 Bounty: From Open Redirect to Profile Manipulation</title><link>https://fodhil-ben.github.io/blog/posts/first-h1-bounty/</link><pubDate>Thu, 24 Jul 2025 10:11:07 +0100</pubDate><author>benhibafodhil@gmail.com (F0DH1L)</author><guid>https://fodhil-ben.github.io/blog/posts/first-h1-bounty/</guid><description><![CDATA[<h1 id="from-open-redirect-to-dom-xss-to-profile-manipulation">From Open Redirect to DOM XSS to Profile Manipulation</h1>
 <h2 id="my-journey-to-hackerone">My Journey to HackerOne</h2>
 <p>After 2.5 years of playing CTFs, I decided to start doing bug bounty to test my skills and try to make some money. My first month on Bugcrowd was mixed - I got some N/A reports, a few informational findings, and some valid P4/P3 vulnerabilities.</p>
-<p>Bugcrowd isn&rsquo;t a bad platform, but I had found some critical vulnerabilities there and submitted them. The problem was that they didn&rsquo;t respond to my reports for more than 2 weeks, which made me lose motivation to keep hunting on the same platform. So I decided to switch to HackerOne to get my motivation back.</p>]]></description>
-</item>
-</channel>
-</rss>
+<p>Bugcrowd isn&rsquo;t a bad platform, but I had found some critical vulnerabilities there and submitted them. The problem was that they didn&rsquo;t respond to my reports for more than 2 weeks, which made me lose motivation to keep hunting on the same platform. So I decided to switch to HackerOne to get my motivation back.</p>]]></description></item></channel></rss>
